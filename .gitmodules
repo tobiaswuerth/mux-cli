@@ -1,3 +1,6 @@
 [submodule "modules/core"]
 	path = modules/core
 	url = https://github.com/tobiaswuerth/mux-core.git
+[submodule "modules/mux-data"]
+	path = modules/mux-data
+	url = https://github.com/tobiaswuerth/mux-data.git
