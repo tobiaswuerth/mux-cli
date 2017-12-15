@@ -14,4 +14,8 @@
     <Optimize>true</Optimize>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ch.wuerth.tobias.mux.Data" Version="1.0.0" />
+  </ItemGroup>
+
 </Project>

@@ -5,13 +5,9 @@ VisualStudioVersion = 15.0.27004.2002
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "App", "App\App.csproj", "{5AD3A0DF-AD39-48A5-A894-1FC791F4E0E2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Data", "modules\mux-data\Data\Data.csproj", "{79533861-3D7B-4F40-B679-719EC613C567}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Core", "modules\mux-core\Core\Core.csproj", "{1DD7FB99-D7C0-4811-8D46-92E2E096E891}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "plugins", "plugins", "{987B5D7A-137F-436F-992B-17504758C31D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PluginImport", "PluginImport\PluginImport.csproj", "{3A4AA204-3993-4799-A864-B0C7BFB2CA01}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PluginImport", "PluginImport\PluginImport.csproj", "{3A4AA204-3993-4799-A864-B0C7BFB2CA01}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,14 +19,6 @@ Global
 		{5AD3A0DF-AD39-48A5-A894-1FC791F4E0E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5AD3A0DF-AD39-48A5-A894-1FC791F4E0E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5AD3A0DF-AD39-48A5-A894-1FC791F4E0E2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{79533861-3D7B-4F40-B679-719EC613C567}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{79533861-3D7B-4F40-B679-719EC613C567}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{79533861-3D7B-4F40-B679-719EC613C567}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{79533861-3D7B-4F40-B679-719EC613C567}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1DD7FB99-D7C0-4811-8D46-92E2E096E891}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1DD7FB99-D7C0-4811-8D46-92E2E096E891}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1DD7FB99-D7C0-4811-8D46-92E2E096E891}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1DD7FB99-D7C0-4811-8D46-92E2E096E891}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3A4AA204-3993-4799-A864-B0C7BFB2CA01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3A4AA204-3993-4799-A864-B0C7BFB2CA01}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3A4AA204-3993-4799-A864-B0C7BFB2CA01}.Release|Any CPU.ActiveCfg = Release|Any CPU
