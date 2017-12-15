@@ -1,0 +1,6 @@
+[submodule "modules/mux-data"]
+	path = modules/mux-data
+	url = ../mux-data/
+[submodule "modules/mux-core"]
+	path = modules/mux-core
+	url = ../mux-core/
