@@ -8,6 +8,7 @@
     <PackageLicenseUrl>https://github.com/tobiaswuerth/mux-cli/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/tobiaswuerth/mux-cli</PackageProjectUrl>
     <RepositoryUrl>https://github.com/tobiaswuerth/mux-cli</RepositoryUrl>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

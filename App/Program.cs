@@ -7,13 +7,14 @@ using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.logging.exception;
 using ch.wuerth.tobias.mux.Core.logging.information;
 using ch.wuerth.tobias.mux.Core.plugin;
+using ch.wuerth.tobias.mux.plugins.PluginImport;
 using global::ch.wuerth.tobias.mux.Core.global;
 
 namespace ch.wuerth.tobias.mux.App
 {
     public class Program
     {
-        private Program(String[] args)
+        protected Program(String[] args)
         {
             LoggerBundle logger = PrepareLogger();
 
@@ -22,7 +23,7 @@ namespace ch.wuerth.tobias.mux.App
                 // validate call
                 if (args.Length < 1)
                 {
-                    logger.Information.Log($"Usage: app <plugin name> [<arg1> <arg2> ...]");
+                    logger.Information.Log("Usage: app <plugin name> [<arg1> <arg2> ...]");
                     return;
                 }
 
@@ -91,51 +92,54 @@ namespace ch.wuerth.tobias.mux.App
 
         private static List<PluginBase> LoadPlugins(LoggerBundle logger)
         {
-            // all plugins
-            if (!Directory.Exists(Location.PluginsDirectoryPath))
-            {
-                logger?.Information?.Log(
-                    $"Directory '{Location.PluginsDirectoryPath}' not found. Trying to create it...");
+            return new List<PluginBase> {new PluginImport()};
 
-                Directory.CreateDirectory(Location.PluginsDirectoryPath);
-                logger?.Information?.Log($"Directory '{Location.PluginsDirectoryPath}' created");
-            }
+            // does not work currently, should load plugins from /plugins/ folder instead of hardlink reference in this solution/project 
 
-            logger?.Information?.Log($"Searching '{Location.PluginsDirectoryPath}' for plugins...");
-            List<String> dllFiles = Directory.GetFiles(Location.PluginsDirectoryPath).Where(x => x.EndsWith(".dll"))
-                .ToList();
-            logger?.Information?.Log($"{dllFiles.Count} potential plugins found");
+            //if (!Directory.Exists(Location.PluginsDirectoryPath))
+            //{
+            //    logger?.Information?.Log(
+            //        $"Directory '{Location.PluginsDirectoryPath}' not found. Trying to create it...");
 
-            List<PluginBase> plugins = new List<PluginBase>();
+            //    Directory.CreateDirectory(Location.PluginsDirectoryPath);
+            //    logger?.Information?.Log($"Directory '{Location.PluginsDirectoryPath}' created");
+            //}
 
-            foreach (String file in dllFiles)
-            {
-                try
-                {
-                    logger?.Information?.Log($"Checking file {file}...");
-                    Assembly a = Assembly.LoadFrom(file);
-                    Type[] types = a.GetTypes();
-                    foreach (Type t in types)
-                    {
-                        Boolean isAssignableFrom = typeof(PluginBase).IsAssignableFrom(t);
-                        if (!isAssignableFrom)
-                        {
-                            continue;
-                        }
+            //logger?.Information?.Log($"Searching '{Location.PluginsDirectoryPath}' for plugins...");
+            //List<String> dllFiles = Directory.GetFiles(Location.PluginsDirectoryPath).Where(x => x.EndsWith(".dll"))
+            //    .ToList();
+            //logger?.Information?.Log($"{dllFiles.Count} potential plugins found");
 
-                        PluginBase plugin = (PluginBase) Activator.CreateInstance(t);
-                        logger?.Information?.Log($"Found plugin '{t.FullName}'");
-                        plugins.Add(plugin);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger?.Exception?.Log(ex);
-                    logger?.Information?.Log($"Skipping this file");
-                }
-            }
+            //List<PluginBase> plugins = new List<PluginBase>();
 
-            return plugins;
+            //foreach (String file in dllFiles)
+            //{
+            //    try
+            //    {
+            //        logger?.Information?.Log($"Checking file {file}...");
+            //        Assembly a = Assembly.LoadFrom(file);
+            //        Type[] types = a.GetTypes();
+            //        foreach (Type t in types)
+            //        {
+            //            Boolean isAssignableFrom = typeof(PluginBase).IsAssignableFrom(t);
+            //            if (!isAssignableFrom)
+            //            {
+            //                continue;
+            //            }
+
+            //            PluginBase plugin = (PluginBase) Activator.CreateInstance(t);
+            //            logger?.Information?.Log($"Found plugin '{t.FullName}'");
+            //            plugins.Add(plugin);
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        logger?.Exception?.Log(ex);
+            //        logger?.Information?.Log($"Skipping this file");
+            //    }
+            //}
+
+            //return plugins;
         }
 
         private static LoggerBundle PrepareLogger()
@@ -150,9 +154,10 @@ namespace ch.wuerth.tobias.mux.App
             return loggers;
         }
 
-        private static void Main(String[] args)
+        public static void Main(String[] args)
         {
             new Program(args);
+            Console.ReadKey();
         }
     }
 }
