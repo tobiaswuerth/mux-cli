@@ -89,42 +89,49 @@ namespace ch.wuerth.tobias.mux.App
             return plugins;
         }
 
-        private static List<PluginBase> LoadPlugins(LoggerBundle loggers)
+        private static List<PluginBase> LoadPlugins(LoggerBundle logger)
         {
             // all plugins
             if (!Directory.Exists(Location.PluginsDirectoryPath))
             {
-                loggers?.Information?.Log(
+                logger?.Information?.Log(
                     $"Directory '{Location.PluginsDirectoryPath}' not found. Trying to create it...");
 
                 Directory.CreateDirectory(Location.PluginsDirectoryPath);
-                loggers?.Information?.Log($"Directory '{Location.PluginsDirectoryPath}' created");
+                logger?.Information?.Log($"Directory '{Location.PluginsDirectoryPath}' created");
             }
 
-            loggers?.Information?.Log($"Searching '{Location.PluginsDirectoryPath}' for plugins...");
+            logger?.Information?.Log($"Searching '{Location.PluginsDirectoryPath}' for plugins...");
             List<String> dllFiles = Directory.GetFiles(Location.PluginsDirectoryPath).Where(x => x.EndsWith(".dll"))
                 .ToList();
-            loggers?.Information?.Log($"{dllFiles.Count} potential plugins found");
+            logger?.Information?.Log($"{dllFiles.Count} potential plugins found");
 
             List<PluginBase> plugins = new List<PluginBase>();
 
             foreach (String file in dllFiles)
             {
-                loggers?.Information?.Log($"Checking file {file}...");
-                Assembly a = Assembly.LoadFrom(file);
-                foreach (Type t in a.GetTypes())
+                try
                 {
-                    Boolean isAssignableFrom = typeof(PluginBase).IsAssignableFrom(t);
-                    if (isAssignableFrom)
+                    logger?.Information?.Log($"Checking file {file}...");
+                    Assembly a = Assembly.LoadFrom(file);
+                    Type[] types = a.GetTypes();
+                    foreach (Type t in types)
                     {
+                        Boolean isAssignableFrom = typeof(PluginBase).IsAssignableFrom(t);
+                        if (!isAssignableFrom)
+                        {
+                            continue;
+                        }
+
                         PluginBase plugin = (PluginBase) Activator.CreateInstance(t);
-                        loggers?.Information?.Log($"Found plugin '{plugin.GetType().FullName}'");
+                        logger?.Information?.Log($"Found plugin '{t.FullName}'");
                         plugins.Add(plugin);
                     }
-                    else
-                    {
-                        loggers?.Information?.Log($"File {file} is not a recognizable plugin");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    logger?.Exception?.Log(ex);
+                    logger?.Information?.Log($"Skipping this file");
                 }
             }
 

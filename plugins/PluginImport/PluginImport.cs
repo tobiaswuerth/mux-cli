@@ -14,7 +14,9 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
     public class PluginImport : PluginBase
     {
         private const Int32 BUFFER_INSERT_THRESHOLD = 25000;
-        private readonly List<String> _extensionFilter = new List<String> {".mp3", "m4a", ".flac", ".wav"};
+
+        private readonly List<String> _extensionFilter =
+            new List<String> {".mp3", ".m4a", ".flac", ".wav", ".ape", ".m4v", ".wma"};
 
         protected override void ConfigurePlugin(PluginConfigurator configurator)
         {
