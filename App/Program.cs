@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using ch.wuerth.tobias.mux.Core.events;
+using System.Reflection;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.logging.exception;
 using ch.wuerth.tobias.mux.Core.logging.information;
 using ch.wuerth.tobias.mux.Core.plugin;
-using ch.wuerth.tobias.mux.plugins.PluginImport;
+using global::ch.wuerth.tobias.mux.Core.global;
 
 namespace ch.wuerth.tobias.mux.App
 {
@@ -16,34 +17,39 @@ namespace ch.wuerth.tobias.mux.App
         {
             LoggerBundle logger = PrepareLogger();
 
-            // validate call
-            if (args.Length < 2)
+            try
             {
-                // args should contain executable name an all parameters passed
-                // e.g. [ ch.wuerth.tobias.mux.App.dll, arg1, arg2, arg3, .. ]
-                logger.Information.Log($"Usage: {args[0]} <plugin name> [<arg1> <arg2> ...]");
-                return;
-            }
-
-            List<PluginBase> pluginsToLoad = LoadPlugins(logger);
-            Dictionary<String, PluginBase> plugins = InitializePlugin(pluginsToLoad, logger);
-
-            String pluginName = args[1].ToLower();
-            if (!plugins.ContainsKey(pluginName))
-            {
-                logger.Information.Log($"No active plugin with name '{pluginName}' found");
-                logger.Information.Log("The following plugin names were registered on startup: ");
-                foreach (String key in plugins.Keys)
+                // validate call
+                if (args.Length < 1)
                 {
-                    logger.Information.Log($" - {key}");
+                    logger.Information.Log($"Usage: app <plugin name> [<arg1> <arg2> ...]");
+                    return;
                 }
 
-                return;
-            }
+                List<PluginBase> pluginsToLoad = LoadPlugins(logger);
+                Dictionary<String, PluginBase> plugins = InitializePlugin(pluginsToLoad, logger);
 
-            logger.Information.Log("Executing plugin...");
-            plugins[pluginName].Work(new ArraySegment<String>(args, 2, args.Length - 2).Array);
-            logger.Information.Log("Execution finished.");
+                String pluginName = args[0].ToLower();
+                if (!plugins.ContainsKey(pluginName))
+                {
+                    logger.Information.Log($"No active plugin with name '{pluginName}' found");
+                    logger.Information.Log("The following plugin names were registered on startup: ");
+                    foreach (String key in plugins.Keys)
+                    {
+                        logger.Information.Log($" - {key}");
+                    }
+
+                    return;
+                }
+
+                logger.Information.Log("Executing plugin...");
+                plugins[pluginName].Work(new ArraySegment<String>(args, 1, args.Length - 1).Array);
+                logger.Information.Log("Execution finished.");
+            }
+            catch (Exception ex)
+            {
+                logger.Exception.Log(ex);
+            }
         }
 
         private static Dictionary<String, PluginBase> InitializePlugin(List<PluginBase> pluginsToLoad,
@@ -86,9 +92,43 @@ namespace ch.wuerth.tobias.mux.App
         private static List<PluginBase> LoadPlugins(LoggerBundle loggers)
         {
             // all plugins
-            // todo load dynamically based on dll file in /plugins/ folder or so
-            List<PluginBase> pluginsToLoad = new List<PluginBase> {new PluginImport()};
-            return pluginsToLoad;
+            if (!Directory.Exists(Location.PluginsDirectoryPath))
+            {
+                loggers?.Information?.Log(
+                    $"Directory '{Location.PluginsDirectoryPath}' not found. Trying to create it...");
+
+                Directory.CreateDirectory(Location.PluginsDirectoryPath);
+                loggers?.Information?.Log($"Directory '{Location.PluginsDirectoryPath}' created");
+            }
+
+            loggers?.Information?.Log($"Searching '{Location.PluginsDirectoryPath}' for plugins...");
+            List<String> dllFiles = Directory.GetFiles(Location.PluginsDirectoryPath).Where(x => x.EndsWith(".dll"))
+                .ToList();
+            loggers?.Information?.Log($"{dllFiles.Count} potential plugins found");
+
+            List<PluginBase> plugins = new List<PluginBase>();
+
+            foreach (String file in dllFiles)
+            {
+                loggers?.Information?.Log($"Checking file {file}...");
+                Assembly a = Assembly.LoadFrom(file);
+                foreach (Type t in a.GetTypes())
+                {
+                    Boolean isAssignableFrom = typeof(PluginBase).IsAssignableFrom(t);
+                    if (isAssignableFrom)
+                    {
+                        PluginBase plugin = (PluginBase) Activator.CreateInstance(t);
+                        loggers?.Information?.Log($"Found plugin '{plugin.GetType().FullName}'");
+                        plugins.Add(plugin);
+                    }
+                    else
+                    {
+                        loggers?.Information?.Log($"File {file} is not a recognizable plugin");
+                    }
+                }
+            }
+
+            return plugins;
         }
 
         private static LoggerBundle PrepareLogger()
@@ -103,7 +143,7 @@ namespace ch.wuerth.tobias.mux.App
             return loggers;
         }
 
-        private static void Main(params String[] args)
+        private static void Main(String[] args)
         {
             new Program(args);
         }
