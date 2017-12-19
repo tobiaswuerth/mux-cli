@@ -21,6 +21,18 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
             configurator.RegisterName("import");
         }
 
+        protected override void OnProcessStarted()
+        {
+            base.OnProcessStarted();
+            Logger?.Information?.Log("Plugin Import has started a new process");
+        }
+
+        protected override void OnProcessStopped()
+        {
+            base.OnProcessStopped();
+            Logger?.Information?.Log("Plugin Import has stopped a process");
+        }
+
         protected override void Process(params String[] args)
         {
             // every arg should be a directory path

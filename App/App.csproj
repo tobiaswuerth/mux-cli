@@ -9,10 +9,20 @@
     <Copyright>Tobias Würth</Copyright>
     <PackageProjectUrl>https://github.com/tobiaswuerth/mux-cli</PackageProjectUrl>
     <RepositoryUrl>https://github.com/tobiaswuerth/mux-cli</RepositoryUrl>
+    <StartupObject>ch.wuerth.tobias.mux.App.Program</StartupObject>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <Optimize>true</Optimize>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ch.wuerth.tobias.mux.Core" Version="1.0.2" />
+    <PackageReference Include="ch.wuerth.tobias.mux.Data" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PluginImport\PluginImport.csproj" />
+  </ItemGroup>
 
 </Project>
