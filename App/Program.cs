@@ -92,7 +92,7 @@ namespace ch.wuerth.tobias.mux.App
 
         private static List<PluginBase> LoadPlugins(LoggerBundle logger)
         {
-            return new List<PluginBase> {new PluginImport()};
+            return new List<PluginBase> {new PluginImport(logger)};
 
             // does not work currently, should load plugins from /plugins/ folder instead of hardlink reference in this solution/project 
 

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using ch.wuerth.tobias.mux.Core.data;
+using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.Data;
 using ch.wuerth.tobias.mux.Data.models;
@@ -17,6 +18,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
 
         private readonly List<String> _extensionFilter =
             new List<String> {".mp3", ".m4a", ".flac", ".wav", ".ape", ".m4v", ".wma"};
+
+        public PluginImport(LoggerBundle logger) : base(logger) { }
 
         protected override void ConfigurePlugin(PluginConfigurator configurator)
         {
@@ -125,7 +128,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
 
             sw.Stop();
             Int64 elms = sw.ElapsedMilliseconds;
-            Logger?.Information?.Log($"Saved {newPathsCount} in {elms}ms ({elms / newPathsCount} per item average)");
+            Logger?.Information?.Log($"Saved {newPathsCount} items in {elms}ms ({(Double) elms / newPathsCount}ms per item average)");
 
             tracks.AddRange(newPaths);
             buffer.Clear();

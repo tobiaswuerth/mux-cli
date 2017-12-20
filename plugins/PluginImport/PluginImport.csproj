@@ -16,8 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ch.wuerth.tobias.mux.Core" Version="1.0.4" />
-    <PackageReference Include="ch.wuerth.tobias.mux.Data" Version="1.0.0" />
+    <PackageReference Include="ch.wuerth.tobias.mux.Core" Version="1.0.5" />
+    <PackageReference Include="ch.wuerth.tobias.mux.Data" Version="1.0.2" />
   </ItemGroup>
 
 </Project>
