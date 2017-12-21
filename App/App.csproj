@@ -17,10 +17,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ch.wuerth.tobias.mux.Core" Version="1.0.5" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\plugins\PluginImport\PluginImport.csproj" />
   </ItemGroup>
 

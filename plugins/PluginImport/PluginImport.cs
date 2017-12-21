@@ -49,7 +49,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
                 return;
             }
 
-            foreach (String path in paths)
+            foreach (String path in paths.Except(new[] {paths.First()}))
             {
                 if (!Directory.Exists(path))
                 {
@@ -128,7 +128,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
 
             sw.Stop();
             Int64 elms = sw.ElapsedMilliseconds;
-            Logger?.Information?.Log($"Saved {newPathsCount} items in {elms}ms ({(Double) elms / newPathsCount}ms per item average)");
+            Logger?.Information?.Log(
+                $"Saved {newPathsCount} items in {elms}ms ({(Double) elms / newPathsCount}ms per item average)");
 
             tracks.AddRange(newPaths);
             buffer.Clear();
