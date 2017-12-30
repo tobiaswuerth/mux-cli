@@ -2,21 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
-    <AssemblyName>ch.wuerth.tobias.mux.plugins.PluginImport</AssemblyName>
-    <RootNamespace>ch.wuerth.tobias.mux.plugins.PluginImport</RootNamespace>
-    <Copyright>Tobias Würth</Copyright>
+    <AssemblyName>ch.wuerth.tobias.mux.plugins.PluginChromaprint</AssemblyName>
+    <RootNamespace>ch.wuerth.tobias.mux.plugins.PluginChromaprint</RootNamespace>
     <PackageLicenseUrl>https://github.com/tobiaswuerth/mux-cli/blob/master/LICENSE</PackageLicenseUrl>
+    <Copyright>Tobias Würth</Copyright>
     <PackageProjectUrl>https://github.com/tobiaswuerth/mux-cli</PackageProjectUrl>
     <RepositoryUrl>https://github.com/tobiaswuerth/mux-cli</RepositoryUrl>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <Optimize>false</Optimize>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <Optimize>false</Optimize>
   </PropertyGroup>
 
   <ItemGroup>

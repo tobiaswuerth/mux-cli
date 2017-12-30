@@ -17,6 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\plugins\PluginChromaprint\PluginChromaprint.csproj" />
     <ProjectReference Include="..\plugins\PluginImport\PluginImport.csproj" />
   </ItemGroup>
 

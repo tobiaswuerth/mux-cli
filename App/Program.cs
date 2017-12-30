@@ -5,6 +5,7 @@ using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.logging.exception;
 using ch.wuerth.tobias.mux.Core.logging.information;
 using ch.wuerth.tobias.mux.Core.plugin;
+using ch.wuerth.tobias.mux.plugins.PluginChromaprint;
 using ch.wuerth.tobias.mux.plugins.PluginImport;
 
 namespace ch.wuerth.tobias.mux.App
@@ -90,9 +91,10 @@ namespace ch.wuerth.tobias.mux.App
 
         private static List<PluginBase> LoadPlugins(LoggerBundle logger)
         {
-            return new List<PluginBase> {new PluginImport(logger)};
+            return new List<PluginBase> {new PluginImport(logger), new PluginChromaprint(logger)};
 
             // does not work currently, should load plugins from /plugins/ folder instead of hardlink reference in this solution/project 
+            // it only works when built with the same referenced version of core and data is used in all the projects and plugins respectively 
 
             //if (!Directory.Exists(Location.PluginsDirectoryPath))
             //{
