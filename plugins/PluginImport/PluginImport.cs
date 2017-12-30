@@ -4,10 +4,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using ch.wuerth.tobias.mux.Core.data;
+using ch.wuerth.tobias.mux.Core.exceptions;
+using ch.wuerth.tobias.mux.Core.io;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.Data;
 using ch.wuerth.tobias.mux.Data.models;
+using global::ch.wuerth.tobias.mux.Core.global;
 using Microsoft.EntityFrameworkCore;
 
 namespace ch.wuerth.tobias.mux.plugins.PluginImport
@@ -15,15 +18,48 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
     public class PluginImport : PluginBase
     {
         private const Int32 BUFFER_INSERT_THRESHOLD = 25000;
-
-        private readonly List<String> _extensionFilter =
-            new List<String> {".mp3", ".m4a", ".flac", ".wav", ".ape", ".m4v", ".wma"}; // extract into settings file
+        private List<String> _extensions;
 
         public PluginImport(LoggerBundle logger) : base(logger) { }
+
+        private String ConfigPath
+        {
+            get { return Path.Combine(Location.ApplicationDataDirectoryPath, "mux_config_plugin_import.json"); }
+        }
 
         protected override void ConfigurePlugin(PluginConfigurator configurator)
         {
             configurator.RegisterName("import");
+            Config config = ReadConfig();
+            _extensions = config.Extensions;
+        }
+
+        private Config ReadConfig()
+        {
+            if (!File.Exists(ConfigPath))
+            {
+                Logger?.Information?.Log($"File '{ConfigPath}' not found. Trying to create it...");
+                Boolean saved = FileInterface.Save(new Config(), ConfigPath, false, Logger);
+                if (!saved)
+                {
+                    throw new ProcessAbortedException();
+                }
+
+                Logger?.Information?.Log(
+                    $"Successfully created '{ConfigPath}'. Please adjust as needed and run the command again.");
+                throw new ProcessAbortedException();
+            }
+
+            (Config output, Boolean success) config = FileInterface.Read<Config>(ConfigPath, Logger);
+            if (!config.success)
+            {
+                throw new ProcessAbortedException();
+            }
+
+            Logger?.Information?.Log(
+                $"Successfully read config. Found the following extensions: {config.output.Extensions.Aggregate((a, b) => $"{a}, {b}")}");
+
+            return config.output;
         }
 
         protected override void OnProcessStarted()
@@ -38,18 +74,18 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
             Logger?.Information?.Log("Plugin Import has stopped a process");
         }
 
-        protected override void Process(params String[] args)
+        protected override void Process(String[] args)
         {
             // every arg should be a directory path
 
             List<String> paths = args.Distinct().Select(x => x.Trim()).ToList();
             if (paths.Count.Equals(0))
             {
-                Logger?.Exception?.Log(new ArgumentException("Usage: exe <path.1> [<path.2> ...]"));
+                Logger?.Exception?.Log(new ArgumentException("at least one argument has to be passed"));
                 return;
             }
 
-            foreach (String path in paths.Except(new[] {paths.First()}))
+            foreach (String path in paths)
             {
                 if (!Directory.Exists(path))
                 {
@@ -69,7 +105,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
                 Logger?.Information?.Log($"Getting data finished in {sw.ElapsedMilliseconds}ms");
 
                 List<String> buffer = new List<String>();
-                DataSource<String> ds = new PathDataSource(path, _extensionFilter);
+                DataSource<String> ds = new PathDataSource(path, _extensions);
 
                 Logger?.Information?.Log($"Start to crawl path '{path}'...");
                 foreach (String file in ds.Get())

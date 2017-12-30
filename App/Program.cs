@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.logging.exception;
 using ch.wuerth.tobias.mux.Core.logging.information;
 using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.plugins.PluginImport;
-using global::ch.wuerth.tobias.mux.Core.global;
 
 namespace ch.wuerth.tobias.mux.App
 {
@@ -16,14 +13,15 @@ namespace ch.wuerth.tobias.mux.App
     {
         protected Program(String[] args)
         {
-            LoggerBundle logger = PrepareLogger();
+            LoggerBundle logger = PrepareLogger(args);
 
             try
             {
                 // validate call
                 if (args.Length < 1)
                 {
-                    logger.Information.Log("Usage: app <plugin name> [<arg1> <arg2> ...]");
+                    logger.Information.Log("Usage: app <logging destination> <plugin name> [<arg1> <arg2> ...]");
+                    logger.Information.Log("Logging destinations: console, file");
                     return;
                 }
 
@@ -44,7 +42,7 @@ namespace ch.wuerth.tobias.mux.App
                 }
 
                 logger.Information.Log("Executing plugin...");
-                plugins[pluginName].Work(new ArraySegment<String>(args, 1, args.Length - 1).Array);
+                plugins[pluginName].Work(args.Skip(1).ToArray() /* skip command name */);
                 logger.Information.Log("Execution finished.");
             }
             catch (Exception ex)
@@ -142,13 +140,17 @@ namespace ch.wuerth.tobias.mux.App
             //return plugins;
         }
 
-        private static LoggerBundle PrepareLogger()
+        private static LoggerBundle PrepareLogger(String[] args)
         {
             ConsoleRethrowCallback cb = new ConsoleRethrowCallback();
+
+            Boolean toFile = args.FirstOrDefault()?.Equals("file", StringComparison.InvariantCultureIgnoreCase) ??
+                             false;
             LoggerBundle loggers = new LoggerBundle
             {
-                Exception = new ExceptionConsoleLogger(cb),
-                Information = new InformationConsoleLogger(cb)
+                Exception = toFile ? (ExceptionLogger) new ExceptionFileLogger(cb) : new ExceptionConsoleLogger(cb),
+                Information =
+                    toFile ? (InformationLogger) new InformationFileLogger(cb) : new InformationConsoleLogger(cb)
             };
             loggers.Information.Log("Logger initialized");
             return loggers;
@@ -156,8 +158,7 @@ namespace ch.wuerth.tobias.mux.App
 
         public static void Main(String[] args)
         {
-            new Program(args);
-            Console.ReadKey();
+            Program program = new Program(args);
         }
     }
 }
