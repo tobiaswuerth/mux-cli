@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.logging.exception;
@@ -7,6 +8,7 @@ using ch.wuerth.tobias.mux.Core.logging.information;
 using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.plugins.PluginChromaprint;
 using ch.wuerth.tobias.mux.plugins.PluginImport;
+using global::ch.wuerth.tobias.mux.Core.global;
 
 namespace ch.wuerth.tobias.mux.App
 {
@@ -14,10 +16,12 @@ namespace ch.wuerth.tobias.mux.App
     {
         protected Program(String[] args)
         {
+            CreateGlobalDirectories();
             LoggerBundle logger = PrepareLogger(args);
 
             try
             {
+
                 // validate call
                 if (args.Length < 1)
                 {
@@ -50,6 +54,20 @@ namespace ch.wuerth.tobias.mux.App
             {
                 logger.Exception.Log(ex);
             }
+        }
+
+        private void CreateGlobalDirectories()
+        {
+            List<String> paths = new List<String>
+            {
+                Location.ApplicationDataDirectoryPath, Location.PluginsDirectoryPath, Location.LogsDirectoryPath
+            };
+
+            paths.Where(x => !Directory.Exists(x)).ToList().ForEach(x =>
+            {
+                Directory.CreateDirectory(x);
+            });
+
         }
 
         private static Dictionary<String, PluginBase> InitializePlugin(List<PluginBase> pluginsToLoad,
@@ -146,8 +164,7 @@ namespace ch.wuerth.tobias.mux.App
         {
             ConsoleRethrowCallback cb = new ConsoleRethrowCallback();
 
-            Boolean toFile = args.FirstOrDefault()?.Equals("file", StringComparison.InvariantCultureIgnoreCase) ??
-                             false;
+            Boolean toFile = args.Length > 1 && args.Skip(1).First().Equals("file", StringComparison.InvariantCultureIgnoreCase);
             LoggerBundle loggers = new LoggerBundle
             {
                 Exception = toFile ? (ExceptionLogger) new ExceptionFileLogger(cb) : new ExceptionConsoleLogger(cb),

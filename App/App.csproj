@@ -21,4 +21,8 @@
     <ProjectReference Include="..\plugins\PluginImport\PluginImport.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ch.wuerth.tobias.mux.Core" Version="1.0.9" />
+  </ItemGroup>
+
 </Project>
