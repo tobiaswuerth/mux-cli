@@ -4,74 +4,23 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using ch.wuerth.tobias.mux.Core.data;
-using ch.wuerth.tobias.mux.Core.exceptions;
-using ch.wuerth.tobias.mux.Core.io;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.Data;
 using ch.wuerth.tobias.mux.Data.models;
-using global::ch.wuerth.tobias.mux.Core.global;
 using Microsoft.EntityFrameworkCore;
 
 namespace ch.wuerth.tobias.mux.plugins.PluginImport
 {
     public class PluginImport : PluginBase
     {
-        private const Int32 BUFFER_INSERT_THRESHOLD = 25000;
-        private List<String> _extensions;
+        private Config _config;
 
-        public PluginImport(LoggerBundle logger) : base(logger) { }
+        public PluginImport(LoggerBundle logger) : base("import", logger) { }
 
-        private String ConfigPath
+        protected override void OnInitialize()
         {
-            get { return Path.Combine(Location.ApplicationDataDirectoryPath, "mux_config_plugin_import.json"); }
-        }
-
-        protected override void ConfigurePlugin(PluginConfigurator configurator)
-        {
-            configurator.RegisterName("import");
-            Config config = ReadConfig();
-            _extensions = config.Extensions;
-        }
-
-        private Config ReadConfig()
-        {
-            if (!File.Exists(ConfigPath))
-            {
-                Logger?.Information?.Log($"File '{ConfigPath}' not found. Trying to create it...");
-                Boolean saved = FileInterface.Save(new Config(), ConfigPath, false, Logger);
-                if (!saved)
-                {
-                    throw new ProcessAbortedException();
-                }
-
-                Logger?.Information?.Log(
-                    $"Successfully created '{ConfigPath}'. Please adjust as needed and run the command again.");
-                throw new ProcessAbortedException();
-            }
-
-            (Config output, Boolean success) config = FileInterface.Read<Config>(ConfigPath, Logger);
-            if (!config.success)
-            {
-                throw new ProcessAbortedException();
-            }
-
-            Logger?.Information?.Log(
-                $"Successfully read config. Found the following extensions: {config.output.Extensions.Aggregate((a, b) => $"{a}, {b}")}");
-
-            return config.output;
-        }
-
-        protected override void OnProcessStarted()
-        {
-            base.OnProcessStarted();
-            Logger?.Information?.Log("Plugin Import has started a new process");
-        }
-
-        protected override void OnProcessStopped()
-        {
-            base.OnProcessStopped();
-            Logger?.Information?.Log("Plugin Import has stopped a process");
+            _config = RequestConfig<Config>();
         }
 
         protected override void Process(String[] args)
@@ -105,7 +54,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
                 Logger?.Information?.Log($"Getting data finished in {sw.ElapsedMilliseconds}ms");
 
                 List<String> buffer = new List<String>();
-                DataSource<String> ds = new PathDataSource(path, _extensions);
+                DataSource<String> ds = new PathDataSource(path, _config.Extensions);
 
                 Logger?.Information?.Log($"Start to crawl path '{path}'...");
                 foreach (String file in ds.Get())
@@ -113,12 +62,12 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
                     buffer.Add(file);
 
                     Int32 bufferCount = buffer.Count;
-                    if (bufferCount < BUFFER_INSERT_THRESHOLD)
+                    if (bufferCount < _config.BufferSize)
                     {
                         if (bufferCount % 5000 == 0)
                         {
                             Logger?.Information?.Log(
-                                $"Adding files to buffer [{bufferCount}/{BUFFER_INSERT_THRESHOLD}] ...");
+                                $"Adding files to buffer [{bufferCount}/{_config.BufferSize}] ...");
                         }
                         continue;
                     }

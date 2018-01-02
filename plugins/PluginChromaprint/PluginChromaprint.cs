@@ -4,8 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using ch.wuerth.tobias.mux.Core.exceptions;
-using ch.wuerth.tobias.mux.Core.io;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.Data;
@@ -26,26 +24,15 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
         private readonly IHasher _hasher = new Sha512Hasher();
 
         private Config _config;
-        public PluginChromaprint(LoggerBundle logger) : base(logger) { }
+        public PluginChromaprint(LoggerBundle logger) : base("chromaprint", logger) { }
 
         private static String FingerprintCalculationExecutablePath
         {
             get { return Path.Combine(Location.PluginsDirectoryPath, "fpcalc.exe"); }
         }
 
-        private String ConfigPath
+        protected override void OnInitialize()
         {
-            get { return Path.Combine(Location.ApplicationDataDirectoryPath, "mux_config_plugin_chromaprint.json"); }
-        }
-
-        protected override void ConfigurePlugin(PluginConfigurator configurator)
-        {
-            configurator.RegisterName("chromaprint");
-        }
-
-        protected override void OnProcessStarted()
-        {
-            base.OnProcessStarted();
             if (!File.Exists(FingerprintCalculationExecutablePath))
             {
                 throw new FileNotFoundException(
@@ -53,42 +40,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                     FingerprintCalculationExecutablePath);
             }
 
-            _config = ReadConfig();
-
-            Logger?.Information?.Log("Plugin Chromaprint started a new process");
-        }
-
-        private Config ReadConfig()
-        {
-            if (!File.Exists(ConfigPath))
-            {
-                Logger?.Information?.Log($"File '{ConfigPath}' not found. Trying to create it...");
-                Boolean saved = FileInterface.Save(new Config(), ConfigPath, false, Logger);
-                if (!saved)
-                {
-                    throw new ProcessAbortedException();
-                }
-
-                Logger?.Information?.Log(
-                    $"Successfully created '{ConfigPath}'. Please adjust as needed and run the command again.");
-                throw new ProcessAbortedException();
-            }
-
-            (Config output, Boolean success) config = FileInterface.Read<Config>(ConfigPath, Logger);
-            if (!config.success)
-            {
-                throw new ProcessAbortedException();
-            }
-
-            Logger?.Information?.Log("Successfully read config.");
-
-            return config.output;
-        }
-
-        protected override void OnProcessStopped()
-        {
-            base.OnProcessStopped();
-            Logger?.Information?.Log("Plugin Chromaprint stopped  process");
+            _config = RequestConfig<Config>();
         }
 
         protected override void Process(String[] args)
@@ -102,7 +54,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                     Logger?.Information?.Log("Preloading data...");
                     Stopwatch sw = new Stopwatch();
                     sw.Start();
-                    tracks = dc.SetTracks.Where(x => !x.LastFingerprintCalculation.HasValue).Take(_config.BatchSize)
+                    tracks = dc.SetTracks.Where(x => !x.LastFingerprintCalculation.HasValue).Take(_config.BufferSize)
                         .ToList();
                     sw.Stop();
                     Logger?.Information?.Log($"Getting data finished in {sw.ElapsedMilliseconds}ms");

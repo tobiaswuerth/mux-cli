@@ -21,7 +21,6 @@ namespace ch.wuerth.tobias.mux.App
 
             try
             {
-
                 // validate call
                 if (args.Length < 1)
                 {
@@ -60,14 +59,12 @@ namespace ch.wuerth.tobias.mux.App
         {
             List<String> paths = new List<String>
             {
-                Location.ApplicationDataDirectoryPath, Location.PluginsDirectoryPath, Location.LogsDirectoryPath
+                Location.ApplicationDataDirectoryPath,
+                Location.PluginsDirectoryPath,
+                Location.LogsDirectoryPath
             };
 
-            paths.Where(x => !Directory.Exists(x)).ToList().ForEach(x =>
-            {
-                Directory.CreateDirectory(x);
-            });
-
+            paths.Where(x => !Directory.Exists(x)).ToList().ForEach(x => { Directory.CreateDirectory(x); });
         }
 
         private static Dictionary<String, PluginBase> InitializePlugin(List<PluginBase> pluginsToLoad,
@@ -78,31 +75,29 @@ namespace ch.wuerth.tobias.mux.App
             pluginsToLoad.ForEach(x =>
             {
                 // initialize
-                PluginConfigurator pc = new PluginConfigurator();
-                Boolean initialized = x.Initialize(pc);
+                Boolean initialized = x.Initialize();
 
-                String pluginTypeName = x.GetType().FullName;
                 if (!initialized)
                 {
                     loggers.Information.Log(
-                        $"Plugin '{pluginTypeName}' cannot be initialized. This plugin will be deactivated.");
+                        $"Plugin '{x.Name}' cannot be initialized. This plugin will be deactivated.");
                     return; // continue in linq
                 }
 
-                loggers.Information.Log($"Plugin '{pluginTypeName}' initialized successfully. Validating...");
+                loggers.Information.Log($"Plugin '{x.Name}' initialized successfully. Validating...");
 
                 // validate
-                String pcName = pc.Name.ToLower();
+                String pcName = x.Name.ToLower().Trim();
                 if (plugins.ContainsKey(pcName))
                 {
                     loggers.Information.Log(
-                        $"Plugin '{pluginTypeName}' does not pass validation because a plugin with the same name has already been registered. This plugin will be deactivated.");
+                        $"Plugin '{x.Name}' does not pass validation because a plugin with the same name has already been registered. This plugin will be deactivated.");
                 }
-                loggers.Information.Log($"Plugin '{pluginTypeName}' passed validation");
+                loggers.Information.Log($"Plugin '{x.Name}' passed validation");
 
                 // add to plugin registry
                 plugins.Add(pcName, x);
-                loggers.Information.Log($"Plugin '{pluginTypeName}' activated");
+                loggers.Information.Log($"Plugin '{x.Name}' activated");
             });
             return plugins;
         }
@@ -164,7 +159,8 @@ namespace ch.wuerth.tobias.mux.App
         {
             ConsoleRethrowCallback cb = new ConsoleRethrowCallback();
 
-            Boolean toFile = args.Length > 1 && args.Skip(1).First().Equals("file", StringComparison.InvariantCultureIgnoreCase);
+            Boolean toFile = args.Length > 1 &&
+                             args.Skip(1).First().Equals("file", StringComparison.InvariantCultureIgnoreCase);
             LoggerBundle loggers = new LoggerBundle
             {
                 Exception = toFile ? (ExceptionLogger) new ExceptionFileLogger(cb) : new ExceptionConsoleLogger(cb),
