@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PluginChromaprint", "plugin
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PluginImport", "plugins\PluginImport\PluginImport.csproj", "{EF148874-349A-4129-8054-1FD4476B361B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PluginAcoustId", "plugins\PluginAcoustId\PluginAcoustId.csproj", "{40D95806-D4D0-44EE-B774-71B5E8F324CA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,6 +31,10 @@ Global
 		{EF148874-349A-4129-8054-1FD4476B361B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF148874-349A-4129-8054-1FD4476B361B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EF148874-349A-4129-8054-1FD4476B361B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40D95806-D4D0-44EE-B774-71B5E8F324CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40D95806-D4D0-44EE-B774-71B5E8F324CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40D95806-D4D0-44EE-B774-71B5E8F324CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40D95806-D4D0-44EE-B774-71B5E8F324CA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -36,6 +42,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{498216D4-64E6-4F73-BA05-C80551DECCC5} = {8796FE9E-02FB-4F0D-A028-152CE30487A9}
 		{EF148874-349A-4129-8054-1FD4476B361B} = {8796FE9E-02FB-4F0D-A028-152CE30487A9}
+		{40D95806-D4D0-44EE-B774-71B5E8F324CA} = {8796FE9E-02FB-4F0D-A028-152CE30487A9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C2AD9CA5-CC3B-448B-A3FB-671F36A9FDC3}
