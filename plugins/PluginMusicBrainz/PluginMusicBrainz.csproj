@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <AssemblyName>ch.wuerth.tobias.mux.plugins.PluginMusicBrainz</AssemblyName>
+    <RootNamespace>ch.wuerth.tobias.mux.plugins.PluginMusicBrainz</RootNamespace>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageLicenseUrl>https://github.com/tobiaswuerth/mux-cli/blob/master/LICENSE</PackageLicenseUrl>
+    <Copyright>Tobias Würth</Copyright>
+    <PackageProjectUrl>https://github.com/tobiaswuerth/mux-cli</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/tobiaswuerth/mux-cli</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>
