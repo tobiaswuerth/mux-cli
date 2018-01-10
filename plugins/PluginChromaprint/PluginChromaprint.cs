@@ -8,6 +8,7 @@ using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.Data;
 using ch.wuerth.tobias.mux.Data.models;
+using ch.wuerth.tobias.mux.plugins.PluginChromaprint.dto;
 using ch.wuerth.tobias.mux.plugins.PluginChromaprint.exceptions;
 using ch.wuerth.tobias.occ.Hasher;
 using ch.wuerth.tobias.occ.Hasher.sha;

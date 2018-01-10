@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
+namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint.dto
 {
     public class JsonFingerprint
     {
