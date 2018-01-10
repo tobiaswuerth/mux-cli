@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="ch.wuerth.tobias.mux.Core" Version="1.0.11" />
-    <PackageReference Include="ch.wuerth.tobias.mux.Data" Version="1.0.5" />
+    <PackageReference Include="ch.wuerth.tobias.mux.Data" Version="1.0.7" />
   </ItemGroup>
 
 </Project>

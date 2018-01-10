@@ -6,6 +6,7 @@ using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.logging.exception;
 using ch.wuerth.tobias.mux.Core.logging.information;
 using ch.wuerth.tobias.mux.Core.plugin;
+using ch.wuerth.tobias.mux.plugins.PluginAcoustId;
 using ch.wuerth.tobias.mux.plugins.PluginChromaprint;
 using ch.wuerth.tobias.mux.plugins.PluginImport;
 using clipr;
@@ -36,9 +37,10 @@ namespace ch.wuerth.tobias.mux.App
                 List<PluginBase> pluginsToLoad = LoadPlugins(Logger);
                 Dictionary<String, PluginBase> plugins = InitializePlugin(pluginsToLoad, Logger);
 
-                if (!plugins.ContainsKey(pa.config.PluginName))
+                String pluginName = pa.config.PluginName.ToLower();
+                if (!plugins.ContainsKey(pluginName))
                 {
-                    Logger.Information.Log($"No active plugin with name '{pa.config.PluginName}' found");
+                    Logger.Information.Log($"No active plugin with name '{pluginName}' found");
                     Logger.Information.Log("The following plugin names were registered on startup: ");
                     foreach (String key in plugins.Keys)
                     {
@@ -49,7 +51,7 @@ namespace ch.wuerth.tobias.mux.App
                 }
 
                 Logger.Information.Log("Executing plugin...");
-                plugins[pa.config.PluginName].Work(pa.config.Args.ToArray());
+                plugins[pluginName].Work(pa.config.Args.ToArray());
                 Logger.Information.Log("Execution finished.");
             }
             catch (Exception ex)
@@ -73,7 +75,8 @@ namespace ch.wuerth.tobias.mux.App
                 logger.Information.Log("Options:");
                 logger.Information.Log("-i | --log-information\t\t console, file");
                 logger.Information.Log("-e | --log-exception\t\t console, file");
-                logger.Information.Log("sample:\t app -i console --log-exception file import 'C:\\User\\Bob\\Music' 'C:\\User\\Foo\\Music'");
+                logger.Information.Log(
+                    "sample:\t app -i console --log-exception file import 'C:\\User\\Bob\\Music' 'C:\\User\\Foo\\Music'");
                 return (false, null);
             }
 
@@ -140,7 +143,12 @@ namespace ch.wuerth.tobias.mux.App
 
         private static List<PluginBase> LoadPlugins(LoggerBundle logger)
         {
-            return new List<PluginBase> {new PluginImport(logger), new PluginChromaprint(logger)};
+            return new List<PluginBase>
+            {
+                new PluginImport(logger),
+                new PluginChromaprint(logger),
+                new PluginAcoustId(logger)
+            };
 
             // does not work currently, should load plugins from /plugins/ folder instead of hardlink reference in this solution/project 
             // it only works when built with the same referenced version of core and data is used in all the projects and plugins respectively 
@@ -210,6 +218,10 @@ namespace ch.wuerth.tobias.mux.App
         public static void Main(String[] args)
         {
             Program program = new Program(args);
+#if DEBUG
+            Console.WriteLine("Press any key to exit");
+            Console.ReadKey();
+#endif
         }
     }
 }

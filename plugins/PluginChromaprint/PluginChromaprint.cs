@@ -24,7 +24,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
         private readonly IHasher _hasher = new Sha512Hasher();
 
         private Config _config;
-        public PluginChromaprint(LoggerBundle logger) : base("chromaprint", logger) { }
+        public PluginChromaprint(LoggerBundle logger) : base("Chromaprint", logger) { }
 
         private static String FingerprintCalculationExecutablePath
         {
