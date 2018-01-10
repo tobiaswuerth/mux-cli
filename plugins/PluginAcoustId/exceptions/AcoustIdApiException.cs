@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
+namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId.exceptions
 {
     public class AcoustIdApiException : Exception
     {

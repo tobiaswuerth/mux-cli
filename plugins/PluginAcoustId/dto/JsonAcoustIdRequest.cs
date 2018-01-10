@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
+namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId.dto
 {
     public class JsonAcoustIdRequest
     {

@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using ch.wuerth.tobias.mux.core.json;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.Data;
 using ch.wuerth.tobias.mux.Data.models;
 using ch.wuerth.tobias.mux.Data.models.shadowentities;
+using ch.wuerth.tobias.mux.plugins.PluginAcoustId.dto;
+using ch.wuerth.tobias.mux.plugins.PluginAcoustId.exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ch.wuerth.tobias.mux.core.json
+namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId.dto
 {
     public class JsonErrorAcoustId
     {

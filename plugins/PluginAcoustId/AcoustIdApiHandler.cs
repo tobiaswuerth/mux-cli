@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
-using ch.wuerth.tobias.mux.core.json;
+using ch.wuerth.tobias.mux.plugins.PluginAcoustId.dto;
 using Newtonsoft.Json;
 
 namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
