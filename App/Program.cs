@@ -9,6 +9,7 @@ using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.plugins.PluginAcoustId;
 using ch.wuerth.tobias.mux.plugins.PluginChromaprint;
 using ch.wuerth.tobias.mux.plugins.PluginImport;
+using ch.wuerth.tobias.mux.plugins.PluginMusicBrainz;
 using clipr;
 using global::ch.wuerth.tobias.mux.Core.global;
 
@@ -147,7 +148,8 @@ namespace ch.wuerth.tobias.mux.App
             {
                 new PluginImport(logger),
                 new PluginChromaprint(logger),
-                new PluginAcoustId(logger)
+                new PluginAcoustId(logger),
+                new PluginMusicBrainz(logger)
             };
 
             // does not work currently, should load plugins from /plugins/ folder instead of hardlink reference in this solution/project 
