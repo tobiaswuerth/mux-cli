@@ -41,8 +41,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
         {
             json.Recordings?.ForEach(recording =>
             {
-                MusicBrainzRecord mbr =
-                    context.SetMusicBrainzRecords.FirstOrDefault(x => x.MusicbrainzId.Equals(recording.Id));
+                MusicBrainzRecord mbr = context.SetMusicBrainzRecords.Include(x => x.MusicBrainzRecordAcoustIds)
+                    .ThenInclude(x => x.AcoustId).FirstOrDefault(x => x.MusicbrainzId.Equals(recording.Id));
 
                 if (null == mbr)
                 {
@@ -119,9 +119,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 
                     data = context.SetTracks
                         .Where(x => null != x.LastFingerprintCalculation && null == x.FingerprintError &&
-                                    null == x.LastAcoustIdApiCall)
-                        .OrderBy(x => x.UniqueId) // todo might need to optimize
-                        .Take(_config.BufferSize).ToList();
+                                    null == x.LastAcoustIdApiCall).Take(_config.BufferSize).ToList();
 
                     Logger?.Information?.Log($"Batch containing {data.Count} entries");
 
