@@ -12,7 +12,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 {
-    // https://acoustid.org/webservice
     public class PluginAcoustId : PluginBase
     {
         private const String ARG_KEY_INCLUDE_FAILED = "include-failed";
@@ -27,16 +26,16 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
         {
             base.OnInitialize();
             _config = RequestConfig<Config>();
-            _apiHandler = new AcoustIdApiHandler(_config.ApiKey);
+            _apiHandler = new AcoustIdApiHandler(Logger, _config.ApiKey);
         }
 
-        private void HandleResponse(DataContext context, Track track, JsonAcoustIdRequest air)
+        private static void HandleResponse(DataContext context, Track track, JsonAcoustIdRequest air)
         {
             air.Results?.ForEach(x =>
             {
-                AcoustId dbair = HandleAcoustId(context, x);
-                HandleResult(context, track, dbair, x);
-                HandleRecordings(context, x, dbair);
+                AcoustId dbAid = HandleAcoustId(context, x);
+                HandleResult(context, track, dbAid, x);
+                HandleRecordings(context, x, dbAid);
             });
         }
 
@@ -87,28 +86,28 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
             });
         }
 
-        private static void HandleResult(DataContext context, Track track, AcoustId dbair,
+        private static void HandleResult(DataContext context, Track track, AcoustId dbAid,
             JsonAcoustIdRequest.JsonResult json)
         {
-            context.SetAcoustIdResults.Add(new AcoustIdResult {Track = track, AcoustId = dbair, Score = json.Score});
+            context.SetAcoustIdResults.Add(new AcoustIdResult {Track = track, AcoustId = dbAid, Score = json.Score});
             context.SaveChanges();
         }
 
         private static AcoustId HandleAcoustId(DataContext context, JsonAcoustIdRequest.JsonResult json)
         {
-            AcoustId dbair = context.SetAcoustIds.FirstOrDefault(y => y.Id.Equals(json.Id));
+            AcoustId dbAid = context.SetAcoustIds.FirstOrDefault(y => y.Id.Equals(json.Id));
 
-            if (null != dbair)
+            if (null != dbAid)
             {
-                return dbair;
+                return dbAid;
             }
 
             // does not exist in database yet
-            dbair = new AcoustId {Id = json.Id};
-            context.SetAcoustIds.Add(dbair);
+            dbAid = new AcoustId {Id = json.Id};
+            context.SetAcoustIds.Add(dbAid);
             context.SaveChanges();
 
-            return dbair;
+            return dbAid;
         }
 
         protected override void Process(String[] args)
@@ -162,7 +161,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
                             }
                             default:
                             {
-                                Logger?.Exception?.Log(new NotImplementedException("Unknown response type"));
+                                Logger?.Exception?.Log(new AcoustIdApiException($"Unknown response: {response}"));
                                 break;
                             }
                         }
