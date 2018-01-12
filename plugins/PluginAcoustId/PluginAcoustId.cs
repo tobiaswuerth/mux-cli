@@ -15,10 +15,13 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
     // https://acoustid.org/webservice
     public class PluginAcoustId : PluginBase
     {
+        private const String ARG_KEY_INCLUDE_FAILED = "include-failed";
         private AcoustIdApiHandler _apiHandler;
         private Config _config;
 
-        public PluginAcoustId(LoggerBundle logger) : base("acoustid", logger) { }
+        private Boolean _includeFailed;
+
+        public PluginAcoustId(LoggerBundle logger) : base("AcoustId", logger) { }
 
         protected override void OnInitialize()
         {
@@ -110,6 +113,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 
         protected override void Process(String[] args)
         {
+            _includeFailed = args.Select(x => x.ToLower()).Contains(ARG_KEY_INCLUDE_FAILED);
+
             List<Track> data;
             do
             {
@@ -117,9 +122,16 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
                 {
                     Logger?.Information?.Log("Loading batch...");
 
-                    data = context.SetTracks
-                        .Where(x => null != x.LastFingerprintCalculation && null == x.FingerprintError &&
-                                    null == x.LastAcoustIdApiCall).Take(_config.BufferSize).ToList();
+                    data = _includeFailed
+                        ? context.SetTracks
+                            .Where(x =>
+                                null != x.LastFingerprintCalculation && null == x.FingerprintError &&
+                                null == x.LastAcoustIdApiCall ||
+                                x.LastAcoustIdApiCall.HasValue && null != x.AcoustIdApiError).Take(_config.BufferSize)
+                            .ToList()
+                        : context.SetTracks
+                            .Where(x => null != x.LastFingerprintCalculation && null == x.FingerprintError &&
+                                        null == x.LastAcoustIdApiCall).Take(_config.BufferSize).ToList();
 
                     Logger?.Information?.Log($"Batch containing {data.Count} entries");
 
