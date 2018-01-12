@@ -13,22 +13,20 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
     public class AcoustIdApiHandler
     {
         private const String API_ENDPOINT = "https://api.acoustid.org/v2/lookup";
-
         private const Int32 MAX_REQUESTS_PER_SECOND = 3; // as requested by policy
         private const Int32 DELAY_BETWEEN_REQUESTS = 1000 / MAX_REQUESTS_PER_SECOND; // in milliseconds
+        private readonly String _apiKey;
         private readonly HttpClient _client = new HttpClient();
 
         private DateTime _lastRequest = DateTime.MinValue;
 
         public AcoustIdApiHandler(LoggerBundle logger, String apiKey)
         {
-            ApiKey = apiKey;
+            _apiKey = apiKey;
 
             logger?.Information?.Log(
                 $"Notice: The AcoustId API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
         }
-
-        private String ApiKey { get; }
 
         public Object Post(Double duration, String fingerprint)
         {
@@ -39,9 +37,10 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 
             Dictionary<String, String> values = new Dictionary<String, String>
             {
-                {"client", ApiKey},
+                {"client", _apiKey},
                 {"duration", $"{(Int32) duration}"},
                 {"fingerprint", fingerprint},
+                // ReSharper disable once StringLiteralTypo
                 {"meta", "recordingids"}
             };
 
