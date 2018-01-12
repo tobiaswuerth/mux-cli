@@ -14,10 +14,13 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 {
     public class PluginMusicBrainz : PluginBase
     {
-        private readonly MusicBrainzApiHandler _api = new MusicBrainzApiHandler();
+        private readonly MusicBrainzApiHandler _api;
         private Config _config;
 
-        public PluginMusicBrainz(LoggerBundle logger) : base("musicbrainz", logger) { }
+        public PluginMusicBrainz(LoggerBundle logger) : base("musicbrainz", logger)
+        {
+            _api = new MusicBrainzApiHandler(logger);
+        }
 
         protected override void OnInitialize()
         {
@@ -90,13 +93,14 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             // aliases
             List<MusicBrainzAlias> aliases = json.Aliases?.Select(x => MusicBrainzMapper.Map(context, x)).ToList() ??
                                              new List<MusicBrainzAlias>();
-            List<MusicBrainzAliasMusicBrainzRecord> mbambr = aliases.Select(x => new MusicBrainzAliasMusicBrainzRecord
-            {
-                MusicBrainzRecord = mbr,
-                MusicBrainzRecordUniqueId = mbr.UniqueId,
-                MusicBrainzAlias = x,
-                MusicBrainzAliasUniqueId = x.UniqueId
-            }).ToList();
+            List<MusicBrainzAliasMusicBrainzRecord> mbambr = aliases.Select(x =>
+                new MusicBrainzAliasMusicBrainzRecord
+                {
+                    MusicBrainzRecord = mbr,
+                    MusicBrainzRecordUniqueId = mbr.UniqueId,
+                    MusicBrainzAlias = x,
+                    MusicBrainzAliasUniqueId = x.UniqueId
+                }).ToList();
             mbr.MusicBrainzAliasMusicBrainzRecords = mbambr;
 
             context.SaveChanges();

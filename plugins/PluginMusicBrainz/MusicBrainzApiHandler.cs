@@ -2,28 +2,37 @@
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.plugins.PluginMusicBrainz.dto;
 using global::ch.wuerth.tobias.mux.Core.global;
 using Newtonsoft.Json;
 
 namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 {
+    // https://musicbrainz.org/doc/Development/XML_Web_Service/Version_2
     public class MusicBrainzApiHandler
     {
         private const String URI_API_MUSICBRAINZ =
             "https://musicbrainz.org/ws/2/recording/{0}?inc=artists+releases+artist-credits+aliases+tags&fmt=json";
+
+        private const Int32 MAX_REQUESTS_PER_SECOND = 1; // as requested by policy
+        private const Int32 DELAY_BETWEEN_REQUESTS = 1000 / MAX_REQUESTS_PER_SECOND; // in milliseconds
 
         private readonly HttpClient _client = new HttpClient();
         private readonly Guid _guid = Guid.NewGuid();
 
         private DateTime _lastRequest = DateTime.MinValue;
 
+        public MusicBrainzApiHandler(LoggerBundle logger)
+        {
+            logger?.Information?.Log(
+                $"Notice: The AcoustId API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
+        }
+
         public Object Get(String id)
         {
-            while ((DateTime.Now - _lastRequest).TotalMilliseconds < 1000)
+            while ((DateTime.Now - _lastRequest).TotalMilliseconds < DELAY_BETWEEN_REQUESTS)
             {
-                // throttling to max 1 request per second 
-                // like requested by MusicBrainz policy
                 Thread.Sleep(1);
             }
 
