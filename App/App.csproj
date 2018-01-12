@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ch.wuerth.tobias.mux.Core" Version="1.0.11" />
+    <PackageReference Include="ch.wuerth.tobias.mux.Core" Version="1.1.0" />
     <PackageReference Include="clipr" Version="1.6.0.1" />
   </ItemGroup>
 
