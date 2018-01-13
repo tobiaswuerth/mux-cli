@@ -51,7 +51,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                         {
                             Logger?.Information?.Log($"Processing '{mbr}'...");
 
-                            mbr.LastMusicBrainzApiCall = DateTime.Now;
+                            DateTime requestTime = DateTime.Now;
                             Object o = _api.Get(mbr.MusicbrainzId);
 
                             switch (o)
@@ -63,10 +63,11 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                                     mbr.MusicBrainzApiCallError = err.Error?.Trim() ?? "<unknown>";
                                     Logger?.Exception?.Log(
                                         new MusicBrainzApiException($"Error: {mbr.MusicBrainzApiCallError}"));
-                                    context.SaveChanges();
                                     break;
                             }
 
+                            mbr.LastMusicBrainzApiCall = requestTime;
+                            context.SaveChanges();
                             Logger?.Information?.Log("Saved and finished processing");
                         }
                         catch (Exception ex)
@@ -85,27 +86,27 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             mbr.Title = json.Title;
             mbr.Video = json.Video;
 
-            context.SaveChanges();
-
             // aliases
             List<MusicBrainzAlias> aliases = json.Aliases?.Select(x => MusicBrainzMapper.Map(context, x)).ToList() ??
                                              new List<MusicBrainzAlias>();
-            List<MusicBrainzAliasMusicBrainzRecord> mbambr = aliases.Select(x => new MusicBrainzAliasMusicBrainzRecord
-            {
-                MusicBrainzRecord = mbr,
-                MusicBrainzRecordUniqueId = mbr.UniqueId,
-                MusicBrainzAlias = x,
-                MusicBrainzAliasUniqueId = x.UniqueId
-            }).ToList();
-            mbr.MusicBrainzAliasMusicBrainzRecords = mbambr;
 
-            context.SaveChanges();
+            List<MusicBrainzAliasMusicBrainzRecord> aliasRecord = aliases.Select(x =>
+                new MusicBrainzAliasMusicBrainzRecord
+                {
+                    MusicBrainzRecord = mbr,
+                    MusicBrainzRecordUniqueId = mbr.UniqueId,
+                    MusicBrainzAlias = x,
+                    MusicBrainzAliasUniqueId = x.UniqueId
+                }).ToList();
+
+            mbr.MusicBrainzAliasMusicBrainzRecords = aliasRecord;
 
             // artist credits
             List<MusicBrainzArtistCredit> credits =
                 json.ArtistCredit?.Select(x => MusicBrainzMapper.Map(context, x)).ToList() ??
                 new List<MusicBrainzArtistCredit>();
-            mbr.MusicBrainzArtistCreditMusicBrainzRecords = credits.Select(x =>
+
+            List<MusicBrainzArtistCreditMusicBrainzRecord> artistCreditRecords = credits.Select(x =>
                 new MusicBrainzArtistCreditMusicBrainzRecord
                 {
                     MusicBrainzRecord = mbr,
@@ -114,11 +115,14 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                     MusicBrainzArtistCreditUniqueId = x.UniqueId
                 }).ToList();
 
+            mbr.MusicBrainzArtistCreditMusicBrainzRecords = artistCreditRecords;
+
             // releases
             List<MusicBrainzRelease> releases =
                 json.Releases?.Select(x => MusicBrainzMapper.Map(context, x, Logger)).ToList() ??
                 new List<MusicBrainzRelease>();
-            mbr.MusicBrainzReleaseMusicBrainzRecords = releases.Select(x =>
+
+            List<MusicBrainzReleaseMusicBrainzRecord> releaseRecords = releases.Select(x =>
                 new MusicBrainzReleaseMusicBrainzRecord
                 {
                     MusicBrainzRecord = mbr,
@@ -127,18 +131,29 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                     MusicBrainzReleaseUniqueId = x.UniqueId
                 }).ToList();
 
+            mbr.MusicBrainzReleaseMusicBrainzRecords = releaseRecords;
+
             // tags
             List<MusicBrainzTag> tags = json.Tags?.Select(x => MusicBrainzMapper.Map(context, x)).ToList() ??
                                         new List<MusicBrainzTag>();
-            mbr.MusicBrainzTagMusicBrainzRecords = tags.Select(x => new MusicBrainzTagMusicBrainzRecord
-            {
-                MusicBrainzRecord = mbr,
-                MusicBrainzRecordUniqueId = mbr.UniqueId,
-                MusicBrainzTag = x,
-                MusicBrainzTagUniqueId = x.UniqueId
-            }).ToList();
+
+            List<MusicBrainzTagMusicBrainzRecord> tagRecords = tags.Select(x =>
+                new MusicBrainzTagMusicBrainzRecord
+                {
+                    MusicBrainzRecord = mbr,
+                    MusicBrainzRecordUniqueId = mbr.UniqueId,
+                    MusicBrainzTag = x,
+                    MusicBrainzTagUniqueId = x.UniqueId
+                }).ToList();
+
+            mbr.MusicBrainzTagMusicBrainzRecords = tagRecords;
 
             context.SaveChanges();
+
+            context.SetMusicBrainzAliasMusicBrainzRecord.AttachRange(aliasRecord);
+            context.SetMusicBrainzArtistCreditMusicBrainzRecord.AttachRange(artistCreditRecords);
+            context.SetMusicBrainzReleaseMusicBrainzRecord.AttachRange(releaseRecords);
+            context.SetMusicBrainzTagMusicBrainzRecord.AttachRange(tagRecords);
         }
     }
 }
