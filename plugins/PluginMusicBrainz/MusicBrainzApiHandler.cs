@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Net.Http;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using ch.wuerth.tobias.mux.Core.logging;
+using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.plugins.PluginMusicBrainz.dto;
-using global::ch.wuerth.tobias.mux.Core.global;
 using Newtonsoft.Json;
 
 namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
@@ -36,8 +37,12 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 
             String url = String.Format(URI_API_MUSICBRAINZ, id ?? String.Empty);
 
+            Assembly coreAssembly = typeof(PluginBase).Assembly;
+            Version coreVersion = coreAssembly.GetName().Version;
+
             HttpRequestMessage req = new HttpRequestMessage(HttpMethod.Get, url);
-            req.Headers.Add("User-Agent", $"Mux/{typeof(Location).Assembly.ImageRuntimeVersion} ( mail @fooo.ooo ) - Instance {_guid}");
+
+            req.Headers.Add("User-Agent", $"Mux/{coreVersion} ( mail @fooo.ooo ) - Instance {_guid}");
 
             _lastRequest = DateTime.Now;
             Task<HttpResponseMessage> response = _client.SendAsync(req);
