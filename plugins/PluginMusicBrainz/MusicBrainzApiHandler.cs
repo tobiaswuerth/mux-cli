@@ -12,8 +12,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
     // https://musicbrainz.org/doc/Development/XML_Web_Service/Version_2
     public class MusicBrainzApiHandler
     {
-        private const String URI_API_MUSICBRAINZ =
-            "https://musicbrainz.org/ws/2/recording/{0}?inc=artists+releases+artist-credits+aliases+tags&fmt=json";
+        private const String URI_API_MUSICBRAINZ = "https://musicbrainz.org/ws/2/recording/{0}?inc=artists+releases+artist-credits+aliases+tags&fmt=json";
 
         private const Int32 MAX_REQUESTS_PER_SECOND = 1; // as requested by policy
         private const Int32 DELAY_BETWEEN_REQUESTS = 1000 / MAX_REQUESTS_PER_SECOND; // in milliseconds
@@ -25,8 +24,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 
         public MusicBrainzApiHandler(LoggerBundle logger)
         {
-            logger?.Information?.Log(
-                $"Notice: The AcoustId API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
+            logger?.Information?.Log($"Notice: The AcoustId API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
         }
 
         public Object Get(String id)
@@ -39,8 +37,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             String url = String.Format(URI_API_MUSICBRAINZ, id ?? String.Empty);
 
             HttpRequestMessage req = new HttpRequestMessage(HttpMethod.Get, url);
-            req.Headers.Add("User-Agent",
-                $"Mux/{typeof(Location).Assembly.ImageRuntimeVersion} ( mail @fooo.ooo ) - Instance {_guid}");
+            req.Headers.Add("User-Agent", $"Mux/{typeof(Location).Assembly.ImageRuntimeVersion} ( mail @fooo.ooo ) - Instance {_guid}");
 
             _lastRequest = DateTime.Now;
             Task<HttpResponseMessage> response = _client.SendAsync(req);

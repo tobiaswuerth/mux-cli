@@ -66,8 +66,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
                     {
                         if (bufferCount % 5000 == 0)
                         {
-                            Logger?.Information?.Log(
-                                $"Adding files to buffer [{bufferCount}/{_config.BufferSize}] ...");
+                            Logger?.Information?.Log($"Adding files to buffer [{bufferCount}/{_config.BufferSize}] ...");
                         }
                         continue;
                     }
@@ -94,11 +93,12 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
                 context.ChangeTracker.AutoDetectChangesEnabled = false;
                 // todo disable validation on save (haven't found feature in EF .net core yet)
 
-                for (Int32 i = 0;
-                    i < newPathsCount;
-                    i++)
+                for (Int32 i = 0 ; i < newPathsCount ; i++)
                 {
-                    context.SetTracks.Add(new Track {Path = newPaths[i]});
+                    context.SetTracks.Add(new Track
+                    {
+                        Path = newPaths[i]
+                    });
                     if (i % 1000 != 0)
                     {
                         continue;
@@ -113,8 +113,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
 
             sw.Stop();
             Int64 elms = sw.ElapsedMilliseconds;
-            Logger?.Information?.Log(
-                $"Saved {newPathsCount} items in {elms}ms ({(Double) elms / newPathsCount}ms per item average)");
+            Logger?.Information?.Log($"Saved {newPathsCount} items in {elms}ms ({(Double) elms / newPathsCount}ms per item average)");
 
             tracks.AddRange(newPaths);
             buffer.Clear();
