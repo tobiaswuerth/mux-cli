@@ -21,6 +21,7 @@
     <ProjectReference Include="..\plugins\PluginChromaprint\PluginChromaprint.csproj" />
     <ProjectReference Include="..\plugins\PluginImport\PluginImport.csproj" />
     <ProjectReference Include="..\plugins\PluginMusicBrainz\PluginMusicBrainz.csproj" />
+    <ProjectReference Include="..\plugins\PluginUserMgmt\PluginUserMgmt.csproj" />
   </ItemGroup>
 
   <ItemGroup>
