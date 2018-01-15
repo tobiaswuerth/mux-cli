@@ -13,20 +13,19 @@ namespace ch.wuerth.tobias.mux.App
             Args = new List<String>();
         }
 
-        [PositionalArgument(0, Description = "The name of the plugin to execute")]
+        [ PositionalArgument(0, Description = "The name of the plugin to execute") ]
         public String PluginName { get; set; }
 
-        [NamedArgument('i', "log-information", Description = "Destination to log information to", Required = false)]
+        [ NamedArgument('i', "log-information", Description = "Destination to log information to", Required = false) ]
         public LogDestination LogInformation { get; set; }
 
-        [NamedArgument('e', "log-exception", Description = "Destination to log exceptions to", Required = false)]
+        [ NamedArgument('e', "log-exception", Description = "Destination to log exceptions to", Required = false) ]
         public LogDestination LogException { get; set; }
 
-        [PositionalArgument(1, Constraint = NumArgsConstraint.AtLeast, NumArgs = 0,
-            Description = "Additional arguments")]
+        [ PositionalArgument(1, Constraint = NumArgsConstraint.AtLeast, NumArgs = 0, Description = "Additional arguments") ]
         public List<String> Args { get; set; }
 
-        [StaticEnumeration]
+        [ StaticEnumeration ]
         public abstract class LogDestination
         {
             public static readonly LogDestination Console = new ConsoleDestination();
@@ -39,7 +38,10 @@ namespace ch.wuerth.tobias.mux.App
             {
                 public override Int32 Id
                 {
-                    get { return 1 << 0; }
+                    get
+                    {
+                        return 1 << 0;
+                    }
                 }
             }
 
@@ -47,7 +49,10 @@ namespace ch.wuerth.tobias.mux.App
             {
                 public override Int32 Id
                 {
-                    get { return 1 << 1; }
+                    get
+                    {
+                        return 1 << 1;
+                    }
                 }
             }
         }

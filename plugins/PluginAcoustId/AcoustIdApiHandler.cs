@@ -24,8 +24,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
         {
             _apiKey = apiKey;
 
-            logger?.Information?.Log(
-                $"Notice: The AcoustId API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
+            logger?.Information?.Log($"Notice: The AcoustId API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
         }
 
         public Object Post(Double duration, String fingerprint)
@@ -37,11 +36,22 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 
             Dictionary<String, String> values = new Dictionary<String, String>
             {
-                {"client", _apiKey},
-                {"duration", $"{(Int32) duration}"},
-                {"fingerprint", fingerprint},
+                {
+                    "client", _apiKey
+                }
+                ,
+                {
+                    "duration", $"{(Int32) duration}"
+                }
+                ,
+                {
+                    "fingerprint", fingerprint
+                }
+                ,
                 // ReSharper disable once StringLiteralTypo
-                {"meta", "recordingids"}
+                {
+                    "meta", "recordingids"
+                }
             };
 
             FormUrlEncodedContent content = new FormUrlEncodedContent(values);

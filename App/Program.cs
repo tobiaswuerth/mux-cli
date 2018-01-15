@@ -10,6 +10,7 @@ using ch.wuerth.tobias.mux.plugins.PluginAcoustId;
 using ch.wuerth.tobias.mux.plugins.PluginChromaprint;
 using ch.wuerth.tobias.mux.plugins.PluginImport;
 using ch.wuerth.tobias.mux.plugins.PluginMusicBrainz;
+using ch.wuerth.tobias.mux.plugins.PluginUserMgmt;
 using clipr;
 using global::ch.wuerth.tobias.mux.Core.global;
 
@@ -19,8 +20,8 @@ namespace ch.wuerth.tobias.mux.App
     {
         private static readonly LoggerBundle Logger = new LoggerBundle
         {
-            Information = new InformationConsoleLogger(null),
-            Exception = new ExceptionConsoleLogger(null)
+            Information = new InformationConsoleLogger(null)
+            , Exception = new ExceptionConsoleLogger(null)
         };
 
         private Program(String[] args)
@@ -61,8 +62,7 @@ namespace ch.wuerth.tobias.mux.App
             }
         }
 
-        private static (Boolean success, ProgramConfig config) ProcessProgramArguments(String[] args,
-            LoggerBundle logger)
+        private static (Boolean success, ProgramConfig config) ProcessProgramArguments(String[] args, LoggerBundle logger)
         {
             ProgramConfig config;
             try
@@ -76,8 +76,7 @@ namespace ch.wuerth.tobias.mux.App
                 logger.Information.Log("Options:");
                 logger.Information.Log("-i | --log-information\t\t console, file");
                 logger.Information.Log("-e | --log-exception\t\t console, file");
-                logger.Information.Log(
-                    "sample:\t app -i console --log-exception file import 'C:\\User\\Bob\\Music' 'C:\\User\\Foo\\Music'");
+                logger.Information.Log("sample:\t app -i console --log-exception file import 'C:\\User\\Bob\\Music' 'C:\\User\\Foo\\Music'");
                 return (false, null);
             }
 
@@ -99,16 +98,15 @@ namespace ch.wuerth.tobias.mux.App
         {
             List<String> paths = new List<String>
             {
-                Location.ApplicationDataDirectoryPath,
-                Location.PluginsDirectoryPath,
-                Location.LogsDirectoryPath
+                Location.ApplicationDataDirectoryPath
+                , Location.PluginsDirectoryPath
+                , Location.LogsDirectoryPath
             };
 
             paths.Where(x => !Directory.Exists(x)).ToList().ForEach(x => Directory.CreateDirectory(x));
         }
 
-        private static Dictionary<String, PluginBase> InitializePlugin(List<PluginBase> pluginsToLoad,
-            LoggerBundle loggers)
+        private static Dictionary<String, PluginBase> InitializePlugin(List<PluginBase> pluginsToLoad, LoggerBundle loggers)
         {
             Dictionary<String, PluginBase> plugins = new Dictionary<String, PluginBase>();
 
@@ -119,8 +117,7 @@ namespace ch.wuerth.tobias.mux.App
 
                 if (!initialized)
                 {
-                    loggers.Information.Log(
-                        $"Plugin '{x.Name}' cannot be initialized. This plugin will be deactivated.");
+                    loggers.Information.Log($"Plugin '{x.Name}' cannot be initialized. This plugin will be deactivated.");
                     return; // continue in linq
                 }
 
@@ -130,8 +127,7 @@ namespace ch.wuerth.tobias.mux.App
                 String pcName = x.Name.ToLower().Trim();
                 if (plugins.ContainsKey(pcName))
                 {
-                    loggers.Information.Log(
-                        $"Plugin '{x.Name}' does not pass validation because a plugin with the same name has already been registered. This plugin will be deactivated.");
+                    loggers.Information.Log($"Plugin '{x.Name}' does not pass validation because a plugin with the same name has already been registered. This plugin will be deactivated.");
                 }
                 loggers.Information.Log($"Plugin '{x.Name}' passed validation");
 
@@ -146,10 +142,11 @@ namespace ch.wuerth.tobias.mux.App
         {
             return new List<PluginBase>
             {
-                new PluginImport(logger),
-                new PluginChromaprint(logger),
-                new PluginAcoustId(logger),
-                new PluginMusicBrainz(logger)
+                new PluginImport(logger)
+                , new PluginChromaprint(logger)
+                , new PluginAcoustId(logger)
+                , new PluginMusicBrainz(logger)
+                , new PluginUserMgmt(logger)
             };
 
             // does not work currently, should load plugins from /plugins/ folder instead of hardlink reference in this solution/project 
@@ -205,13 +202,11 @@ namespace ch.wuerth.tobias.mux.App
         {
             ConsoleRethrowCallback cb = new ConsoleRethrowCallback();
 
-            Boolean toFile = args.Length > 1 &&
-                             args.Skip(1).First().Equals("file", StringComparison.InvariantCultureIgnoreCase);
+            Boolean toFile = args.Length > 1 && args.Skip(1).First().Equals("file", StringComparison.InvariantCultureIgnoreCase);
             LoggerBundle loggers = new LoggerBundle
             {
-                Exception = toFile ? (ExceptionLogger) new ExceptionFileLogger(cb) : new ExceptionConsoleLogger(cb),
-                Information =
-                    toFile ? (InformationLogger) new InformationFileLogger(cb) : new InformationConsoleLogger(cb)
+                Exception = toFile ? (ExceptionLogger) new ExceptionFileLogger(cb) : new ExceptionConsoleLogger(cb)
+                , Information = toFile ? (InformationLogger) new InformationFileLogger(cb) : new InformationConsoleLogger(cb)
             };
             loggers.Information.Log("Logger initialized");
             return loggers;

@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
-    <AssemblyName>ch.wuerth.tobias.mux.plugins.PluginAcoustId</AssemblyName>
-    <RootNamespace>ch.wuerth.tobias.mux.plugins.PluginAcoustId</RootNamespace>
+    <AssemblyName>ch.wuerth.tobias.mux.plugins.PluginUserMgmt</AssemblyName>
+    <RootNamespace>ch.wuerth.tobias.mux.plugins.PluginUserMgmt</RootNamespace>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Copyright>Tobias Würth</Copyright>
     <PackageLicenseUrl>https://github.com/tobiaswuerth/mux-cli/blob/master/LICENSE</PackageLicenseUrl>

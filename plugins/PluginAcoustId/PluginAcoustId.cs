@@ -43,25 +43,24 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
         {
             json.Recordings?.ForEach(recording =>
             {
-                MusicBrainzRecord mbr = context.SetMusicBrainzRecords.Include(x => x.MusicBrainzRecordAcoustIds)
-                    .ThenInclude(x => x.AcoustId).FirstOrDefault(x => x.MusicbrainzId.Equals(recording.Id));
+                MusicBrainzRecord mbr = context.SetMusicBrainzRecords.Include(x => x.MusicBrainzRecordAcoustIds).ThenInclude(x => x.AcoustId).FirstOrDefault(x => x.MusicbrainzId.Equals(recording.Id));
 
                 if (null == mbr)
                 {
                     // not found in database
                     mbr = new MusicBrainzRecord
                     {
-                        MusicbrainzId = recording.Id,
-                        MusicBrainzRecordAcoustIds = new List<MusicBrainzRecordAcoustId>()
+                        MusicbrainzId = recording.Id
+                        , MusicBrainzRecordAcoustIds = new List<MusicBrainzRecordAcoustId>()
                     };
                     context.SetMusicBrainzRecords.Add(mbr);
                     context.SaveChanges();
                     mbr.MusicBrainzRecordAcoustIds.Add(new MusicBrainzRecordAcoustId
                     {
-                        AcoustIdUniqueId = ai.UniqueId,
-                        AcoustId = ai,
-                        MusicBrainzRecord = mbr,
-                        MusicBrainzRecordUniqueId = mbr.UniqueId
+                        AcoustIdUniqueId = ai.UniqueId
+                        , AcoustId = ai
+                        , MusicBrainzRecord = mbr
+                        , MusicBrainzRecordUniqueId = mbr.UniqueId
                     });
                     context.SaveChanges();
 
@@ -77,19 +76,23 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
                 // no reference yet -> create one
                 mbr.MusicBrainzRecordAcoustIds.Add(new MusicBrainzRecordAcoustId
                 {
-                    AcoustIdUniqueId = ai.UniqueId,
-                    AcoustId = ai,
-                    MusicBrainzRecord = mbr,
-                    MusicBrainzRecordUniqueId = mbr.UniqueId
+                    AcoustIdUniqueId = ai.UniqueId
+                    , AcoustId = ai
+                    , MusicBrainzRecord = mbr
+                    , MusicBrainzRecordUniqueId = mbr.UniqueId
                 });
                 context.SaveChanges();
             });
         }
 
-        private static void HandleResult(DataContext context, Track track, AcoustId dbAid,
-            JsonAcoustIdRequest.JsonResult json)
+        private static void HandleResult(DataContext context, Track track, AcoustId dbAid, JsonAcoustIdRequest.JsonResult json)
         {
-            context.SetAcoustIdResults.Add(new AcoustIdResult {Track = track, AcoustId = dbAid, Score = json.Score});
+            context.SetAcoustIdResults.Add(new AcoustIdResult
+            {
+                Track = track
+                , AcoustId = dbAid
+                , Score = json.Score
+            });
             context.SaveChanges();
         }
 
@@ -103,7 +106,10 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
             }
 
             // does not exist in database yet
-            dbAid = new AcoustId {Id = json.Id};
+            dbAid = new AcoustId
+            {
+                Id = json.Id
+            };
             context.SetAcoustIds.Add(dbAid);
             context.SaveChanges();
 
@@ -121,16 +127,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
                 {
                     Logger?.Information?.Log("Loading batch...");
 
-                    data = _includeFailed
-                        ? context.SetTracks
-                            .Where(x =>
-                                null != x.LastFingerprintCalculation && null == x.FingerprintError &&
-                                null == x.LastAcoustIdApiCall ||
-                                x.LastAcoustIdApiCall.HasValue && null != x.AcoustIdApiError).Take(_config.BufferSize)
-                            .ToList()
-                        : context.SetTracks
-                            .Where(x => null != x.LastFingerprintCalculation && null == x.FingerprintError &&
-                                        null == x.LastAcoustIdApiCall).Take(_config.BufferSize).ToList();
+                    data = _includeFailed ? context.SetTracks.Where(x => null != x.LastFingerprintCalculation && null == x.FingerprintError && null == x.LastAcoustIdApiCall || x.LastAcoustIdApiCall.HasValue && null != x.AcoustIdApiError).Take(_config.BufferSize).ToList() : context.SetTracks.Where(x => null != x.LastFingerprintCalculation && null == x.FingerprintError && null == x.LastAcoustIdApiCall).Take(_config.BufferSize).ToList();
 
                     Logger?.Information?.Log($"Batch containing {data.Count} entries");
 
@@ -146,8 +143,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
                         {
                             case JsonErrorAcoustId jea:
                             {
-                                Logger?.Exception?.Log(
-                                    new AcoustIdApiException($"Error {jea.Error.Code}: {jea.Error.Message}"));
+                                Logger?.Exception?.Log(new AcoustIdApiException($"Error {jea.Error.Code}: {jea.Error.Message}"));
                                 track.AcoustIdApiError = jea.Error.Message;
                                 track.AcoustIdApiErrorCode = jea.Error.Code;
                                 break;
@@ -169,7 +165,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
                         context.SaveChanges();
                     }
                 }
-            } while (data.Count > 0);
+            }
+            while (data.Count > 0);
         }
     }
 }

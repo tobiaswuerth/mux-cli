@@ -21,27 +21,27 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
     // https://github.com/acoustid/chromaprint
     public class PluginChromaprint : PluginBase
     {
+        private const String ARG_KEY_INCLUDE_FAILED = "include-failed";
         private readonly List<Track> _buffer = new List<Track>();
         private readonly IHasher _hasher = new Sha512Hasher();
 
-        private const String ARG_KEY_INCLUDE_FAILED = "include-failed";
-        private Boolean _includeFailed;
-
         private Config _config;
+        private Boolean _includeFailed;
         public PluginChromaprint(LoggerBundle logger) : base("Chromaprint", logger) { }
 
         private static String FingerprintCalculationExecutablePath
         {
-            get { return Path.Combine(Location.PluginsDirectoryPath, "fpcalc.exe"); }
+            get
+            {
+                return Path.Combine(Location.PluginsDirectoryPath, "fpcalc.exe");
+            }
         }
 
         protected override void OnInitialize()
         {
             if (!File.Exists(FingerprintCalculationExecutablePath))
             {
-                throw new FileNotFoundException(
-                    $"File '{FingerprintCalculationExecutablePath}' not found. Visit https://github.com/acoustid/chromaprint/releases to download the latest version.",
-                    FingerprintCalculationExecutablePath);
+                throw new FileNotFoundException($"File '{FingerprintCalculationExecutablePath}' not found. Visit https://github.com/acoustid/chromaprint/releases to download the latest version.", FingerprintCalculationExecutablePath);
             }
 
             _config = RequestConfig<Config>();
@@ -60,13 +60,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                     Logger?.Information?.Log("Preloading data...");
                     Stopwatch sw = new Stopwatch();
                     sw.Start();
-                    tracks = _includeFailed
-                        ? dataContext.SetTracks
-                            .Where(x => !x.LastFingerprintCalculation.HasValue || null != x.FingerprintError)
-                            .Take(_config.BufferSize).ToList()
-                        : dataContext.SetTracks
-                            .Where(x => !x.LastFingerprintCalculation.HasValue)
-                            .Take(_config.BufferSize).ToList();
+                    tracks = _includeFailed ? dataContext.SetTracks.Where(x => !x.LastFingerprintCalculation.HasValue || null != x.FingerprintError).Take(_config.BufferSize).ToList() : dataContext.SetTracks.Where(x => !x.LastFingerprintCalculation.HasValue).Take(_config.BufferSize).ToList();
 
                     sw.Stop();
                     Logger?.Information?.Log($"Getting data finished in {sw.ElapsedMilliseconds}ms");
@@ -85,13 +79,13 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                     {
                         StartInfo =
                         {
-                            FileName = FingerprintCalculationExecutablePath,
-                            Arguments = $"-json \"{track.Path}\"",
-                            CreateNoWindow = true,
-                            RedirectStandardError = true,
-                            RedirectStandardInput = true,
-                            RedirectStandardOutput = true,
-                            UseShellExecute = false
+                            FileName = FingerprintCalculationExecutablePath
+                            , Arguments = $"-json \"{track.Path}\""
+                            , CreateNoWindow = true
+                            , RedirectStandardError = true
+                            , RedirectStandardInput = true
+                            , RedirectStandardOutput = true
+                            , UseShellExecute = false
                         }
                     };
                     p.OutputDataReceived += (_, arguments) => HandleStdOutput(arguments, track);
@@ -103,7 +97,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                     p.BeginErrorReadLine();
                     Logger?.Information?.Log($"Process started for file '{track.Path}'");
                 }
-            } while (tracks.Count > 0);
+            }
+            while (tracks.Count > 0);
         }
 
         private void HandleErrOutput(DataReceivedEventArgs arguments, Track track)
@@ -161,8 +156,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                     Logger?.Information?.Log($"Checking for duplicates for file '{track.Path}'...");
                     if (dataContext.SetTracks.AsNoTracking().Any(x => x.FingerprintHash.Equals(track.FingerprintHash)))
                     {
-                        Logger?.Information?.Log(
-                            $"File with same fingerprint already in database. Path '{track.Path}' will be skipped");
+                        Logger?.Information?.Log($"File with same fingerprint already in database. Path '{track.Path}' will be skipped");
                         track.FingerprintError = "duplicate";
                     }
                     else
