@@ -11,4 +11,9 @@
     <RepositoryUrl>https://github.com/tobiaswuerth/mux-cli</RepositoryUrl>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ch.wuerth.tobias.mux.Core" Version="1.1.2" />
+    <PackageReference Include="ch.wuerth.tobias.mux.Data" Version="1.0.7" />
+  </ItemGroup>
+
 </Project>

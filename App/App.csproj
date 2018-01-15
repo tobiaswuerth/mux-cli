@@ -21,10 +21,11 @@
     <ProjectReference Include="..\plugins\PluginChromaprint\PluginChromaprint.csproj" />
     <ProjectReference Include="..\plugins\PluginImport\PluginImport.csproj" />
     <ProjectReference Include="..\plugins\PluginMusicBrainz\PluginMusicBrainz.csproj" />
+    <ProjectReference Include="..\plugins\PluginUserMgmt\PluginUserMgmt.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ch.wuerth.tobias.mux.Core" Version="1.1.1" />
+    <PackageReference Include="ch.wuerth.tobias.mux.Core" Version="1.1.2" />
     <PackageReference Include="clipr" Version="1.6.0.1" />
   </ItemGroup>
 
