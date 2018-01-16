@@ -25,7 +25,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 
         public MusicBrainzApiHandler(LoggerBundle logger)
         {
-            logger?.Information?.Log($"Notice: The AcoustId API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
+            logger?.Information?.Log($"Notice: The MusicBrainz API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
         }
 
         public Object Get(String id)

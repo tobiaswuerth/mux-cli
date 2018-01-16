@@ -15,13 +15,10 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 {
     public class PluginMusicBrainz : PluginBase
     {
-        private readonly MusicBrainzApiHandler _api;
+        private MusicBrainzApiHandler _api;
         private Config _config;
 
-        public PluginMusicBrainz(LoggerBundle logger) : base("musicbrainz", logger)
-        {
-            _api = new MusicBrainzApiHandler(logger);
-        }
+        public PluginMusicBrainz(LoggerBundle logger) : base("musicbrainz", logger) { }
 
         protected override void OnInitialize()
         {
@@ -31,7 +28,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
         protected override void OnProcessStarting()
         {
             base.OnProcessStarting();
-            Logger?.Information?.Log("Notice: The API used is throttled to allow a maximum of one request per second. This is due to the MusicBrainz policy.");
+            _api = new MusicBrainzApiHandler(Logger);
         }
 
         protected override void Process(String[] args)

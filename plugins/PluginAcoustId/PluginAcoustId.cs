@@ -26,6 +26,11 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
         {
             base.OnInitialize();
             _config = RequestConfig<Config>();
+        }
+
+        protected override void OnProcessStarting()
+        {
+            base.OnProcessStarting();
             _apiHandler = new AcoustIdApiHandler(Logger, _config.ApiKey);
         }
 
