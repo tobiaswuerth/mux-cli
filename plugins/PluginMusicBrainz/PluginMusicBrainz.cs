@@ -18,11 +18,13 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
         private MusicBrainzApiHandler _api;
         private Config _config;
 
-        public PluginMusicBrainz(LoggerBundle logger) : base("musicbrainz", logger) { }
+        public PluginMusicBrainz() : base("musicbrainz") { }
 
         protected override void OnInitialize()
         {
+            LoggerBundle.Trace("Requesting config...");
             _config = RequestConfig<Config>();
+            LoggerBundle.Trace("Done.");
         }
 
         protected override void OnProcessStarting()

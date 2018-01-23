@@ -10,6 +10,7 @@ using ch.wuerth.tobias.mux.Data.models.shadowentities;
 using ch.wuerth.tobias.mux.plugins.PluginAcoustId.dto;
 using ch.wuerth.tobias.mux.plugins.PluginAcoustId.exceptions;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 {
@@ -20,7 +21,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 
         private Boolean _includeFailed;
 
-        public PluginAcoustId(LoggerBundle logger) : base("AcoustId", logger) { }
+        public PluginAcoustId() : base("AcoustId") { }
 
         protected override void OnInitialize()
         {
@@ -33,7 +34,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
         protected override void OnProcessStarting()
         {
             base.OnProcessStarting();
-            _apiHandler = new AcoustIdApiHandler(Logger, _config.ApiKey);
+            _apiHandler = new AcoustIdApiHandler(_config.ApiKey);
         }
 
         private static void HandleResponse(DataContext context, Track track, JsonAcoustIdRequest air)
@@ -125,26 +126,30 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
             return dbAid;
         }
 
-        protected override void OnActionHelp(StringBuilder sb)
+        protected override String GetHelp()
         {
+            StringBuilder sb = new StringBuilder();
             sb.Append($"Usage: app {Name} [<options>...]");
             sb.Append(Environment.NewLine);
             sb.Append("Options:");
             sb.Append(Environment.NewLine);
             sb.Append(
                 "> include-failed | includes records which have previously been processed but have failed (disabled by default)");
+            return sb.ToString();
         }
 
         protected override void Process(String[] args)
         {
+            LoggerBundle.Inform($"Starting {Name} process...");
+
             TriggerActions(args.ToList());
 
             List<Track> data;
             do
             {
-                using (DataContext context = new DataContext(new DbContextOptions<DataContext>(), Logger))
+                using (DataContext context = new DataContext(new DbContextOptions<DataContext>()))
                 {
-                    Logger?.Information?.Log("Loading batch...");
+                    LoggerBundle.Debug("Loading batch...");
 
                     data = _includeFailed
                         ? context.SetTracks
@@ -161,36 +166,52 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
                             .Take(_config.BufferSize)
                             .ToList();
 
-                    Logger?.Information?.Log($"Batch containing {data.Count} entries");
+                    LoggerBundle.Inform($"Batch containing {data.Count} entries");
 
                     foreach (Track track in data)
                     {
-                        Logger?.Information?.Log($"Processing '{track}'...");
+                        LoggerBundle.Debug($"Posting metadata of track '{track}'...");
 
                         track.LastAcoustIdApiCall = DateTime.Now;
 
                         Object response = _apiHandler.Post(track.Duration ?? 0d, track.Fingerprint);
+                        LoggerBundle.Trace($"Response: {response}");
 
                         switch (response)
                         {
                             case JsonErrorAcoustId jea:
                             {
-                                Logger?.Exception?.Log(
-                                    new AcoustIdApiException($"Error {jea.Error.Code}: {jea.Error.Message}"));
+                                LoggerBundle.Warn(new AcoustIdApiException($"Error {jea.Error.Code}: {jea.Error.Message}"));
                                 track.AcoustIdApiError = jea.Error.Message;
                                 track.AcoustIdApiErrorCode = jea.Error.Code;
                                 break;
                             }
                             case JsonAcoustIdRequest air:
                             {
-                                Logger?.Information?.Log("Process response...");
+                                LoggerBundle.Debug("Processing response...");
                                 HandleResponse(context, track, air);
-                                Logger?.Information?.Log("Processing done");
+                                LoggerBundle.Debug("Processing done");
                                 break;
                             }
                             default:
                             {
-                                Logger?.Exception?.Log(new AcoustIdApiException($"Unknown response: {response}"));
+                                LoggerBundle.Trace(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine
+                                    , "Trying to serialize unknown response object...");
+                                String serializedResponse = "<unknown>";
+                                try
+                                {
+                                    serializedResponse = JsonConvert.SerializeObject(response);
+                                }
+                                catch (Exception ex)
+                                {
+                                    LoggerBundle.Error(ex);
+                                }
+                                LoggerBundle.Trace(Logger.DefaultLogFlags
+                                    & ~LogFlags.PrefixTimeStamp
+                                    & ~LogFlags.PrefixLoggerType
+                                    , "Ok.");
+                                LoggerBundle.Warn(new AcoustIdApiException($"Unknown response: {serializedResponse}"));
+                                track.AcoustIdApiError = serializedResponse;
                                 break;
                             }
                         }

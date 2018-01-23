@@ -24,39 +24,48 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 
         private DateTime _lastRequest = DateTime.MinValue;
 
-        public MusicBrainzApiHandler(LoggerBundle logger)
+        public MusicBrainzApiHandler()
         {
-            logger?.Information?.Log(
-                $"Notice: The MusicBrainz API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
+            LoggerBundle.Inform($"Notice: The MusicBrainz API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
         }
 
         public Object Get(String id)
         {
+            LoggerBundle.Debug($"Get request for id '{id}'...");
             while ((DateTime.Now - _lastRequest).TotalMilliseconds < DELAY_BETWEEN_REQUESTS)
             {
                 Thread.Sleep(1);
             }
 
             String url = String.Format(URI_API_MUSICBRAINZ, id ?? String.Empty);
+            LoggerBundle.Trace($"Posting to '{url}'");
 
             Assembly coreAssembly = typeof(PluginBase).Assembly;
             Version coreVersion = coreAssembly.GetName().Version;
 
             HttpRequestMessage req = new HttpRequestMessage(HttpMethod.Get, url);
 
-            req.Headers.Add("User-Agent", $"Mux/{coreVersion} ( mail @fooo.ooo ) - Instance {_guid}");
+            String userAgent = $"Mux/{coreVersion} ( mail @fooo.ooo ) - Instance {_guid}";
+            req.Headers.Add("User-Agent", userAgent);
+            LoggerBundle.Trace($"User-Agent: {userAgent}");
 
             _lastRequest = DateTime.Now;
+            LoggerBundle.Trace(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine, "Sending async request...");
             Task<HttpResponseMessage> response = _client.SendAsync(req);
+            LoggerBundle.Trace(Logger.DefaultLogFlags & ~LogFlags.PrefixTimeStamp & ~LogFlags.PrefixLoggerType, "Ok.");
+            
             Task<String> responseString = response.Result.Content.ReadAsStringAsync();
-            String result = responseString.Result.Trim();
+            String responseBody = responseString.Result.Trim();
+            LoggerBundle.Trace($"Response: {responseBody}");
 
-            JsonErrorMusicBrainz status = JsonConvert.DeserializeObject<JsonErrorMusicBrainz>(result);
+            LoggerBundle.Trace(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine, "Trying to deserialize object...");
+            JsonErrorMusicBrainz status = JsonConvert.DeserializeObject<JsonErrorMusicBrainz>(responseBody);
+            LoggerBundle.Trace(Logger.DefaultLogFlags & ~LogFlags.PrefixTimeStamp & ~LogFlags.PrefixLoggerType, "Ok.");
 
             if (null == status.Error)
             {
                 // no error found
-                return JsonConvert.DeserializeObject<JsonMusicBrainzRequest>(result);
+                return JsonConvert.DeserializeObject<JsonMusicBrainzRequest>(responseBody);
             }
 
             return status;

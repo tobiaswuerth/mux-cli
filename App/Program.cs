@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using ch.wuerth.tobias.mux.Core.logging;
-using ch.wuerth.tobias.mux.Core.logging.exception;
-using ch.wuerth.tobias.mux.Core.logging.information;
 using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.plugins.PluginAcoustId;
 using ch.wuerth.tobias.mux.plugins.PluginChromaprint;
@@ -18,51 +16,44 @@ namespace ch.wuerth.tobias.mux.App
 {
     public class Program
     {
-        private static readonly LoggerBundle Logger = new LoggerBundle
-        {
-            Information = new InformationConsoleLogger(null)
-            , Exception = new ExceptionConsoleLogger(null)
-        };
-
         private Program(String[] args)
         {
-            (Boolean success, ProgramConfig config) pa = ProcessProgramArguments(args, Logger);
-            if (!pa.success)
+            LoggerBundle.Inform("Initializing...");
+
+            (Boolean success, ProgramConfig config) = ProcessProgramArguments(args);
+            if (!success)
             {
-                return;
+                LoggerBundle.Fatal("Program arguments could not be parsed correctly");
+                Environment.Exit(1);
             }
 
             try
             {
                 CreateGlobalDirectories();
 
-                List<PluginBase> pluginsToLoad = LoadPlugins(Logger);
-                Dictionary<String, PluginBase> plugins = InitializePlugin(pluginsToLoad, Logger);
+                List<PluginBase> pluginsToLoad = LoadPlugins();
+                Dictionary<String, PluginBase> plugins = InitializePlugin(pluginsToLoad);
 
-                String pluginName = pa.config.PluginName.ToLower();
+                String pluginName = config.PluginName.ToLower();
                 if (!plugins.ContainsKey(pluginName))
                 {
-                    Logger.Information.Log($"No active plugin with name '{pluginName}' found");
-                    Logger.Information.Log("The following plugin names were registered on startup: ");
-                    foreach (String key in plugins.Keys)
-                    {
-                        Logger.Information.Log($" - {key}");
-                    }
-
+                    LoggerBundle.Warn($"No active plugin with name '{pluginName}' found");
+                    LoggerBundle.Inform("The following plugin names were registered on startup: ");
+                    plugins.Keys.ToList().ForEach(x => LoggerBundle.Inform($"+ {x}"));
                     return;
                 }
-
-                Logger.Information.Log("Executing plugin...");
-                plugins[pluginName].Work(pa.config.Args.ToArray());
-                Logger.Information.Log("Execution finished.");
+                
+                LoggerBundle.Inform("Executing plugin...");
+                plugins[pluginName].Work(config.Args.ToArray());
+                LoggerBundle.Inform("Execution finished.");
             }
             catch (Exception ex)
             {
-                Logger.Exception.Log(ex);
+                LoggerBundle.Error(ex);
             }
         }
 
-        private static (Boolean success, ProgramConfig config) ProcessProgramArguments(String[] args, LoggerBundle logger)
+        private static (Boolean success, ProgramConfig config) ProcessProgramArguments(String[] args)
         {
             ProgramConfig config;
             try
@@ -71,21 +62,9 @@ namespace ch.wuerth.tobias.mux.App
             }
             catch (Exception ex)
             {
-                logger.Exception.Log(ex);
+                LoggerBundle.Error(ex);
                 return (false, null);
             }
-
-            // additional adjustments based on successful argument parsing
-            Int32 fileLoggerId = new ProgramConfig.LogDestination.FileDestination().Id;
-            if (config.LogInformation.Id.Equals(fileLoggerId))
-            {
-                logger.Information = new InformationFileLogger(null);
-            }
-            if (config.LogException.Id.Equals(fileLoggerId))
-            {
-                logger.Exception = new ExceptionFileLogger(null);
-            }
-
             return (true, config);
         }
 
@@ -98,10 +77,15 @@ namespace ch.wuerth.tobias.mux.App
                 , Location.LogsDirectoryPath
             };
 
-            paths.Where(x => !Directory.Exists(x)).ToList().ForEach(x => Directory.CreateDirectory(x));
+            paths.Where(x => !Directory.Exists(x)).ToList().ForEach(x =>
+            {
+                LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine, $"Trying to create directory '{x}'...");
+                Directory.CreateDirectory(x);
+                LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.PrefixLoggerType & ~LogFlags.PrefixTimeStamp, $"Ok.");
+            });
         }
 
-        private static Dictionary<String, PluginBase> InitializePlugin(List<PluginBase> pluginsToLoad, LoggerBundle loggers)
+        private static Dictionary<String, PluginBase> InitializePlugin(List<PluginBase> pluginsToLoad)
         {
             Dictionary<String, PluginBase> plugins = new Dictionary<String, PluginBase>();
 
@@ -112,37 +96,36 @@ namespace ch.wuerth.tobias.mux.App
 
                 if (!initialized)
                 {
-                    loggers.Information.Log($"Plugin '{x.Name}' cannot be initialized. This plugin will be deactivated.");
-                    return; // continue in linq
+                    LoggerBundle.Warn($"Plugin '{x.Name}' cannot be initialized. This plugin will be deactivated.");
+                    return;
                 }
 
-                loggers.Information.Log($"Plugin '{x.Name}' initialized successfully. Validating...");
+                LoggerBundle.Debug($"Plugin '{x.Name}' initialized successfully. Validating...");
 
                 // validate
                 String pcName = x.Name.ToLower().Trim();
                 if (plugins.ContainsKey(pcName))
                 {
-                    loggers.Information.Log(
-                        $"Plugin '{x.Name}' does not pass validation because a plugin with the same name has already been registered. This plugin will be deactivated.");
+                    LoggerBundle.Warn($"Plugin '{x.Name}' does not pass validation because a plugin with the same name has already been registered. This plugin will be deactivated.");
                 }
-                loggers.Information.Log($"Plugin '{x.Name}' passed validation");
+                LoggerBundle.Debug($"Plugin '{x.Name}' passed validation");
 
                 // add to plugin registry
                 plugins.Add(pcName, x);
-                loggers.Information.Log($"Plugin '{x.Name}' activated");
+                LoggerBundle.Inform($"Plugin '{x.Name}' activated");
             });
             return plugins;
         }
 
-        private static List<PluginBase> LoadPlugins(LoggerBundle logger)
+        private static List<PluginBase> LoadPlugins()
         {
             return new List<PluginBase>
             {
-                new PluginImport(logger)
-                , new PluginChromaprint(logger)
-                , new PluginAcoustId(logger)
-                , new PluginMusicBrainz(logger)
-                , new PluginUserMgmt(logger)
+                new PluginImport()
+                , new PluginChromaprint()
+                , new PluginAcoustId()
+                , new PluginMusicBrainz()
+                , new PluginUserMgmt()
             };
 
             // does not work currently, should load plugins from /plugins/ folder instead of hardlink reference in this solution/project 
@@ -192,21 +175,6 @@ namespace ch.wuerth.tobias.mux.App
             //}
 
             //return plugins;
-        }
-
-        private static LoggerBundle PrepareLogger(String[] args)
-        {
-            ConsoleRethrowCallback cb = new ConsoleRethrowCallback();
-
-            Boolean toFile = args.Length > 1
-                && args.Skip(1).First().Equals("file", StringComparison.InvariantCultureIgnoreCase);
-            LoggerBundle loggers = new LoggerBundle
-            {
-                Exception = toFile ? (ExceptionLogger) new ExceptionFileLogger(cb) : new ExceptionConsoleLogger(cb)
-                , Information = toFile ? (InformationLogger) new InformationFileLogger(cb) : new InformationConsoleLogger(cb)
-            };
-            loggers.Information.Log("Logger initialized");
-            return loggers;
         }
 
         public static void Main(String[] args)

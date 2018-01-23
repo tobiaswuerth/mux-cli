@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using ch.wuerth.tobias.mux.Core.logging;
-using ch.wuerth.tobias.mux.Core.processor;
+using ch.wuerth.tobias.mux.Core.processing;
 using ch.wuerth.tobias.mux.Data;
 using ch.wuerth.tobias.mux.Data.models;
 using ch.wuerth.tobias.mux.Data.models.shadowentities;
@@ -13,11 +13,11 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 {
     public static class MusicBrainzMapper
     {
-        private static readonly DateTimeStringProcessor DateTimeProcessor = new DateTimeStringProcessor();
+        private static readonly DateTimeParserPipe DateTimeParserPipe = new DateTimeParserPipe();
 
-        public static MusicBrainzRelease Map(DataContext context, JsonMusicBrainzRequest.Release json, LoggerBundle logger)
+        public static MusicBrainzRelease Map(DataContext context, JsonMusicBrainzRequest.Release json)
         {
-            (DateTime? parsedDate, Boolean _) = DateTimeProcessor.Handle(json.Date, logger);
+            DateTime? parsedDate = DateTimeParserPipe.Process(json.Date);
 
             MusicBrainzRelease mbr = new MusicBrainzRelease
             {
@@ -59,7 +59,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                 .ToList();
 
             // release events
-            List<MusicBrainzReleaseEvent> releaseEvents = json.ReleaseEvents?.Select(x => Map(context, x, logger)).ToList()
+            List<MusicBrainzReleaseEvent> releaseEvents = json.ReleaseEvents?.Select(x => Map(context, x)).ToList()
                 ?? new List<MusicBrainzReleaseEvent>();
             mbr.MusicBrainzReleaseEventMusicBrainzReleases = releaseEvents.Select(x
                     => new MusicBrainzReleaseEventMusicBrainzRelease
@@ -246,11 +246,9 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             return obj;
         }
 
-        private static MusicBrainzReleaseEvent Map(DataContext context
-            , JsonMusicBrainzRequest.Release.ReleaseEvent json
-            , LoggerBundle logger)
+        private static MusicBrainzReleaseEvent Map(DataContext context, JsonMusicBrainzRequest.Release.ReleaseEvent json)
         {
-            (DateTime? parsedDate, Boolean _) = DateTimeProcessor.Handle(json.Date, logger);
+            DateTime? parsedDate = DateTimeParserPipe.Process(json.Date);
 
             MusicBrainzReleaseEvent obj = new MusicBrainzReleaseEvent
             {
