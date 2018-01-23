@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
@@ -21,7 +22,6 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
     // https://github.com/acoustid/chromaprint
     public class PluginChromaprint : PluginBase
     {
-        private const String ARG_KEY_INCLUDE_FAILED = "include-failed";
         private readonly List<Track> _buffer = new List<Track>();
         private readonly IHasher _hasher = new Sha512Hasher();
 
@@ -37,19 +37,32 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
             }
         }
 
+        protected override void OnActionHelp(StringBuilder sb)
+        {
+            sb.Append($"Usage: app {Name} [<options>...]");
+            sb.Append(Environment.NewLine);
+            sb.Append("Options:");
+            sb.Append(Environment.NewLine);
+            sb.Append(
+                "> include-failed | includes records which have previously been processed but have failed (disabled by default)");
+        }
+
         protected override void OnInitialize()
         {
             if (!File.Exists(FingerprintCalculationExecutablePath))
             {
-                throw new FileNotFoundException($"File '{FingerprintCalculationExecutablePath}' not found. Visit https://github.com/acoustid/chromaprint/releases to download the latest version.", FingerprintCalculationExecutablePath);
+                throw new FileNotFoundException(
+                    $"File '{FingerprintCalculationExecutablePath}' not found. Visit https://github.com/acoustid/chromaprint/releases to download the latest version."
+                    , FingerprintCalculationExecutablePath);
             }
 
             _config = RequestConfig<Config>();
+            RegisterAction("include-failed", () => _includeFailed = true);
         }
 
         protected override void Process(String[] args)
         {
-            _includeFailed = args.Select(x => x.ToLower()).Contains(ARG_KEY_INCLUDE_FAILED);
+            TriggerActions(args.ToList());
 
             List<Track> tracks;
 
@@ -60,7 +73,13 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                     Logger?.Information?.Log("Preloading data...");
                     Stopwatch sw = new Stopwatch();
                     sw.Start();
-                    tracks = _includeFailed ? dataContext.SetTracks.Where(x => !x.LastFingerprintCalculation.HasValue || null != x.FingerprintError).Take(_config.BufferSize).ToList() : dataContext.SetTracks.Where(x => !x.LastFingerprintCalculation.HasValue).Take(_config.BufferSize).ToList();
+                    tracks = _includeFailed
+                        ? dataContext.SetTracks.Where(x => !x.LastFingerprintCalculation.HasValue || null != x.FingerprintError)
+                            .Take(_config.BufferSize)
+                            .ToList()
+                        : dataContext.SetTracks.Where(x => !x.LastFingerprintCalculation.HasValue)
+                            .Take(_config.BufferSize)
+                            .ToList();
 
                     sw.Stop();
                     Logger?.Information?.Log($"Getting data finished in {sw.ElapsedMilliseconds}ms");
@@ -156,7 +175,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                     Logger?.Information?.Log($"Checking for duplicates for file '{track.Path}'...");
                     if (dataContext.SetTracks.AsNoTracking().Any(x => x.FingerprintHash.Equals(track.FingerprintHash)))
                     {
-                        Logger?.Information?.Log($"File with same fingerprint already in database. Path '{track.Path}' will be skipped");
+                        Logger?.Information?.Log(
+                            $"File with same fingerprint already in database. Path '{track.Path}' will be skipped");
                         track.FingerprintError = "duplicate";
                     }
                     else
