@@ -122,7 +122,8 @@ namespace ch.wuerth.tobias.mux.App
                 String pcName = x.Name.ToLower().Trim();
                 if (plugins.ContainsKey(pcName))
                 {
-                    loggers.Information.Log($"Plugin '{x.Name}' does not pass validation because a plugin with the same name has already been registered. This plugin will be deactivated.");
+                    loggers.Information.Log(
+                        $"Plugin '{x.Name}' does not pass validation because a plugin with the same name has already been registered. This plugin will be deactivated.");
                 }
                 loggers.Information.Log($"Plugin '{x.Name}' passed validation");
 
@@ -197,7 +198,8 @@ namespace ch.wuerth.tobias.mux.App
         {
             ConsoleRethrowCallback cb = new ConsoleRethrowCallback();
 
-            Boolean toFile = args.Length > 1 && args.Skip(1).First().Equals("file", StringComparison.InvariantCultureIgnoreCase);
+            Boolean toFile = args.Length > 1
+                && args.Skip(1).First().Equals("file", StringComparison.InvariantCultureIgnoreCase);
             LoggerBundle loggers = new LoggerBundle
             {
                 Exception = toFile ? (ExceptionLogger) new ExceptionFileLogger(cb) : new ExceptionConsoleLogger(cb)

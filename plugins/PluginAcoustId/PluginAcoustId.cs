@@ -50,7 +50,9 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
         {
             json.Recordings?.ForEach(recording =>
             {
-                MusicBrainzRecord mbr = context.SetMusicBrainzRecords.Include(x => x.MusicBrainzRecordAcoustIds).ThenInclude(x => x.AcoustId).FirstOrDefault(x => x.MusicbrainzId.Equals(recording.Id));
+                MusicBrainzRecord mbr = context.SetMusicBrainzRecords.Include(x => x.MusicBrainzRecordAcoustIds)
+                    .ThenInclude(x => x.AcoustId)
+                    .FirstOrDefault(x => x.MusicbrainzId.Equals(recording.Id));
 
                 if (null == mbr)
                 {
@@ -129,7 +131,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
             sb.Append(Environment.NewLine);
             sb.Append("Options:");
             sb.Append(Environment.NewLine);
-            sb.Append("> include-failed | includes records which have previously been processed but have failed (disabled by default)");
+            sb.Append(
+                "> include-failed | includes records which have previously been processed but have failed (disabled by default)");
         }
 
         protected override void Process(String[] args)
@@ -143,7 +146,20 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
                 {
                     Logger?.Information?.Log("Loading batch...");
 
-                    data = _includeFailed ? context.SetTracks.Where(x => null != x.LastFingerprintCalculation && null == x.FingerprintError && null == x.LastAcoustIdApiCall || x.LastAcoustIdApiCall.HasValue && null != x.AcoustIdApiError).Take(_config.BufferSize).ToList() : context.SetTracks.Where(x => null != x.LastFingerprintCalculation && null == x.FingerprintError && null == x.LastAcoustIdApiCall).Take(_config.BufferSize).ToList();
+                    data = _includeFailed
+                        ? context.SetTracks
+                            .Where(x => null != x.LastFingerprintCalculation
+                                && null == x.FingerprintError
+                                && null == x.LastAcoustIdApiCall
+                                || x.LastAcoustIdApiCall.HasValue && null != x.AcoustIdApiError)
+                            .Take(_config.BufferSize)
+                            .ToList()
+                        : context.SetTracks
+                            .Where(x => null != x.LastFingerprintCalculation
+                                && null == x.FingerprintError
+                                && null == x.LastAcoustIdApiCall)
+                            .Take(_config.BufferSize)
+                            .ToList();
 
                     Logger?.Information?.Log($"Batch containing {data.Count} entries");
 
@@ -159,7 +175,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
                         {
                             case JsonErrorAcoustId jea:
                             {
-                                Logger?.Exception?.Log(new AcoustIdApiException($"Error {jea.Error.Code}: {jea.Error.Message}"));
+                                Logger?.Exception?.Log(
+                                    new AcoustIdApiException($"Error {jea.Error.Code}: {jea.Error.Message}"));
                                 track.AcoustIdApiError = jea.Error.Message;
                                 track.AcoustIdApiErrorCode = jea.Error.Code;
                                 break;

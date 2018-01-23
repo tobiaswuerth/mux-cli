@@ -24,7 +24,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
         {
             _apiKey = apiKey;
 
-            logger?.Information?.Log($"Notice: The AcoustId API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
+            logger?.Information?.Log(
+                $"Notice: The AcoustId API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
         }
 
         public Object Post(Double duration, String fingerprint)

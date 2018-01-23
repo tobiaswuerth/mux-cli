@@ -13,7 +13,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
     // https://musicbrainz.org/doc/Development/XML_Web_Service/Version_2
     public class MusicBrainzApiHandler
     {
-        private const String URI_API_MUSICBRAINZ = "https://musicbrainz.org/ws/2/recording/{0}?inc=artists+releases+artist-credits+aliases+tags&fmt=json";
+        private const String URI_API_MUSICBRAINZ =
+            "https://musicbrainz.org/ws/2/recording/{0}?inc=artists+releases+artist-credits+aliases+tags&fmt=json";
 
         private const Int32 MAX_REQUESTS_PER_SECOND = 1; // as requested by policy
         private const Int32 DELAY_BETWEEN_REQUESTS = 1000 / MAX_REQUESTS_PER_SECOND; // in milliseconds
@@ -25,7 +26,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 
         public MusicBrainzApiHandler(LoggerBundle logger)
         {
-            logger?.Information?.Log($"Notice: The MusicBrainz API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
+            logger?.Information?.Log(
+                $"Notice: The MusicBrainz API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
         }
 
         public Object Get(String id)
