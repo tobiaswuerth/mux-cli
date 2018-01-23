@@ -72,11 +72,6 @@ namespace ch.wuerth.tobias.mux.App
             catch (Exception ex)
             {
                 logger.Exception.Log(ex);
-                logger.Information.Log("Usage: app [options...] <plugin name> [arguments...]");
-                logger.Information.Log("Options:");
-                logger.Information.Log("-i | --log-information\t\t console, file");
-                logger.Information.Log("-e | --log-exception\t\t console, file");
-                logger.Information.Log("sample:\t app -i console --log-exception file import 'C:\\User\\Bob\\Music' 'C:\\User\\Foo\\Music'");
                 return (false, null);
             }
 

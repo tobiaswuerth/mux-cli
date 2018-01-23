@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using ch.wuerth.tobias.mux.Core.data;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
@@ -76,6 +77,13 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
 
                 ProcessBuffer(ref buffer, ref tracks);
             }
+        }
+
+        protected override void OnActionHelp(StringBuilder sb)
+        {
+            sb.Append($"Usage: app {Name} <path1> [<path2>...]");
+            sb.Append(Environment.NewLine);
+            sb.Append("> path-n | Path to directory to import from");
         }
 
         private void ProcessBuffer(ref List<String> buffer, ref List<String> tracks)

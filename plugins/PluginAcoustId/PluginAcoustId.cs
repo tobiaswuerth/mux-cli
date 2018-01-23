@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.Data;
@@ -14,7 +15,6 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 {
     public class PluginAcoustId : PluginBase
     {
-        private const String ARG_KEY_INCLUDE_FAILED = "include-failed";
         private AcoustIdApiHandler _apiHandler;
         private Config _config;
 
@@ -26,6 +26,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
         {
             base.OnInitialize();
             _config = RequestConfig<Config>();
+
+            RegisterAction("include-failed", () => _includeFailed = true);
         }
 
         protected override void OnProcessStarting()
@@ -121,9 +123,18 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
             return dbAid;
         }
 
+        protected override void OnActionHelp(StringBuilder sb)
+        {
+            sb.Append($"Usage: app {Name} [<options>...]");
+            sb.Append(Environment.NewLine);
+            sb.Append("Options:");
+            sb.Append(Environment.NewLine);
+            sb.Append("> include-failed | includes records which have previously been processed but have failed (disabled by default)");
+        }
+
         protected override void Process(String[] args)
         {
-            _includeFailed = args.Select(x => x.ToLower()).Contains(ARG_KEY_INCLUDE_FAILED);
+            TriggerActions(args.ToList());
 
             List<Track> data;
             do

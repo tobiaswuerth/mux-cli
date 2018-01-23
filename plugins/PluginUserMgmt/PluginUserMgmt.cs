@@ -126,7 +126,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginUserMgmt
         {
             sb.Append($"Usage: app {Name} <action>");
             sb.Append(Environment.NewLine);
-            sb.Append("Actions: add");
+            sb.Append("Actions: add | Create new user");
         }
     }
 }
