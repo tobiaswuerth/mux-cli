@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.processing;
 using ch.wuerth.tobias.mux.Data;
 using ch.wuerth.tobias.mux.Data.models;

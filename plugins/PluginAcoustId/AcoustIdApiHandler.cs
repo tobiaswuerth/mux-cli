@@ -31,7 +31,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 
         public Object Post(Double duration, String fingerprint)
         {
-            LoggerBundle.Trace($"Received post request for a track with duration '{duration}' and fingerprint {fingerprint}...");
+            LoggerBundle.Trace(
+                $"Received post request for a track with duration '{duration}' and fingerprint {fingerprint}...");
             while ((DateTime.Now - _lastRequest).TotalMilliseconds < DELAY_BETWEEN_REQUESTS)
             {
                 Thread.Sleep(1);
@@ -72,7 +73,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
             {
                 return JsonConvert.DeserializeObject<JsonAcoustIdRequest>(result);
             }
-            
+
             return JsonConvert.DeserializeObject<JsonErrorAcoustId>(result);
         }
     }

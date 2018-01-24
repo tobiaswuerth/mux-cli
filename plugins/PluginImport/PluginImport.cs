@@ -31,7 +31,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
 
         protected override void Process(String[] args)
         {
-            base.OnProcessStarting();
+            OnProcessStarting();
             // every arg should be a directory path
 
             List<String> paths = args.Distinct().Select(x => x.Trim()).ToList();

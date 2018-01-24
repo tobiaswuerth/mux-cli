@@ -26,7 +26,10 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
         protected override void OnInitialize()
         {
             base.OnInitialize();
+
+            LoggerBundle.Trace("Requesting config...");
             _config = RequestConfig<Config>();
+            LoggerBundle.Trace("Done");
 
             RegisterAction("include-failed", () => _includeFailed = true);
         }

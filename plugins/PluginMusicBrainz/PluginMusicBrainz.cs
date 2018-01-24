@@ -30,7 +30,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
         protected override void OnProcessStarting()
         {
             base.OnProcessStarting();
-            _api = new MusicBrainzApiHandler(Logger);
+            _api = new MusicBrainzApiHandler();
         }
 
         protected override void Process(String[] args)
@@ -39,8 +39,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 
             do
             {
-                Logger?.Information?.Log("Getting data...");
-                using (DataContext context = new DataContext(new DbContextOptions<DataContext>(), Logger))
+                LoggerBundle.Inform("Getting data...");
+                using (DataContext context = new DataContext(new DbContextOptions<DataContext>()))
                 {
                     data = context.SetMusicBrainzRecords.Where(x => null == x.LastMusicBrainzApiCall)
                         .Include(x => x.MusicBrainzAliasMusicBrainzRecords)
@@ -55,13 +55,13 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                         .Take(_config.BatchSize)
                         .ToList();
 
-                    Logger?.Information?.Log($"Batch containing: {data.Count} entries");
+                    LoggerBundle.Inform($"Batch containing: {data.Count} entries");
 
                     foreach (MusicBrainzRecord mbr in data)
                     {
                         try
                         {
-                            Logger?.Information?.Log($"Processing '{mbr}'...");
+                            LoggerBundle.Debug($"Processing record '{mbr}'...");
 
                             DateTime requestTime = DateTime.Now;
                             Object o = _api.Get(mbr.MusicbrainzId);
@@ -76,8 +76,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                                     break;
                                 case JsonErrorMusicBrainz err:
                                     mbr.MusicBrainzApiCallError = err.Error?.Trim() ?? "<unknown>";
-                                    Logger?.Exception?.Log(
-                                        new MusicBrainzApiException($"Error: {mbr.MusicBrainzApiCallError}"));
+                                    LoggerBundle.Warn(new MusicBrainzApiException($"Error: {mbr.MusicBrainzApiCallError}"));
                                     break;
                             }
 
@@ -85,11 +84,11 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                             context.SaveChanges();
 
                             sw.Stop();
-                            Logger?.Information?.Log($"Saved and finished processing in {sw.ElapsedMilliseconds}ms");
+                            LoggerBundle.Debug($"Processing done in {sw.ElapsedMilliseconds}ms");
                         }
                         catch (Exception ex)
                         {
-                            Logger?.Exception?.Log(ex);
+                            LoggerBundle.Error(ex);
                         }
                     }
                 }
@@ -99,6 +98,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 
         private void HandleResponse(MusicBrainzRecord mbr, JsonMusicBrainzRequest json, DataContext context)
         {
+            LoggerBundle.Trace("Handling response...");
+
             mbr.Disambiguation = json.Disambiguation;
             mbr.Length = json.Length;
             mbr.Title = json.Title;
@@ -144,7 +145,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                 .ToList();
 
             // releases
-            List<MusicBrainzRelease> releases = json.Releases?.Select(x => MusicBrainzMapper.Map(context, x, Logger)).ToList()
+            List<MusicBrainzRelease> releases = json.Releases?.Select(x => MusicBrainzMapper.Map(context, x)).ToList()
                 ?? new List<MusicBrainzRelease>();
 
             List<MusicBrainzReleaseMusicBrainzRecord> releaseRecords = releases.Select(x

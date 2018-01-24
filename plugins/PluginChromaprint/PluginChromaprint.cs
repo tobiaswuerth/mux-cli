@@ -68,7 +68,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
 
         protected override void Process(String[] args)
         {
-            base.OnProcessStarting();
+            OnProcessStarting();
             TriggerActions(args.ToList());
 
             List<Track> tracks;

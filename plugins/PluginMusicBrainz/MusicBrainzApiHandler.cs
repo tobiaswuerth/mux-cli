@@ -26,7 +26,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 
         public MusicBrainzApiHandler()
         {
-            LoggerBundle.Inform($"Notice: The MusicBrainz API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
+            LoggerBundle.Inform(
+                $"Notice: The MusicBrainz API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
         }
 
         public Object Get(String id)
@@ -53,7 +54,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             LoggerBundle.Trace(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine, "Sending async request...");
             Task<HttpResponseMessage> response = _client.SendAsync(req);
             LoggerBundle.Trace(Logger.DefaultLogFlags & ~LogFlags.PrefixTimeStamp & ~LogFlags.PrefixLoggerType, "Ok.");
-            
+
             Task<String> responseString = response.Result.Content.ReadAsStringAsync();
             String responseBody = responseString.Result.Trim();
             LoggerBundle.Trace($"Response: {responseBody}");

@@ -42,7 +42,7 @@ namespace ch.wuerth.tobias.mux.App
                     plugins.Keys.ToList().ForEach(x => LoggerBundle.Inform($"+ {x}"));
                     return;
                 }
-                
+
                 LoggerBundle.Inform("Executing plugin...");
                 plugins[pluginName].Work(config.Args.ToArray());
                 LoggerBundle.Inform("Execution finished.");
@@ -65,6 +65,7 @@ namespace ch.wuerth.tobias.mux.App
                 LoggerBundle.Error(ex);
                 return (false, null);
             }
+
             return (true, config);
         }
 
@@ -77,12 +78,15 @@ namespace ch.wuerth.tobias.mux.App
                 , Location.LogsDirectoryPath
             };
 
-            paths.Where(x => !Directory.Exists(x)).ToList().ForEach(x =>
-            {
-                LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine, $"Trying to create directory '{x}'...");
-                Directory.CreateDirectory(x);
-                LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.PrefixLoggerType & ~LogFlags.PrefixTimeStamp, $"Ok.");
-            });
+            paths.Where(x => !Directory.Exists(x))
+                .ToList()
+                .ForEach(x =>
+                {
+                    LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine
+                        , $"Trying to create directory '{x}'...");
+                    Directory.CreateDirectory(x);
+                    LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.PrefixLoggerType & ~LogFlags.PrefixTimeStamp, $"Ok.");
+                });
         }
 
         private static Dictionary<String, PluginBase> InitializePlugin(List<PluginBase> pluginsToLoad)
@@ -106,7 +110,8 @@ namespace ch.wuerth.tobias.mux.App
                 String pcName = x.Name.ToLower().Trim();
                 if (plugins.ContainsKey(pcName))
                 {
-                    LoggerBundle.Warn($"Plugin '{x.Name}' does not pass validation because a plugin with the same name has already been registered. This plugin will be deactivated.");
+                    LoggerBundle.Warn(
+                        $"Plugin '{x.Name}' does not pass validation because a plugin with the same name has already been registered. This plugin will be deactivated.");
                 }
                 LoggerBundle.Debug($"Plugin '{x.Name}' passed validation");
 
