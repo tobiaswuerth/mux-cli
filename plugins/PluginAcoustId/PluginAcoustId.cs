@@ -143,8 +143,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 
         protected override void Process(String[] args)
         {
-            LoggerBundle.Inform($"Starting {Name} process...");
-
+            base.OnProcessStarting();
             TriggerActions(args.ToList());
 
             List<Track> data;
