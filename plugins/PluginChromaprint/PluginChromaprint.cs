@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
@@ -21,13 +22,12 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
     // https://github.com/acoustid/chromaprint
     public class PluginChromaprint : PluginBase
     {
-        private const String ARG_KEY_INCLUDE_FAILED = "include-failed";
         private readonly List<Track> _buffer = new List<Track>();
         private readonly IHasher _hasher = new Sha512Hasher();
 
         private Config _config;
         private Boolean _includeFailed;
-        public PluginChromaprint(LoggerBundle logger) : base("Chromaprint", logger) { }
+        public PluginChromaprint() : base("Chromaprint") { }
 
         private static String FingerprintCalculationExecutablePath
         {
@@ -37,44 +37,73 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
             }
         }
 
+        protected override String GetHelp()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"Usage: app {Name} [<options>...]");
+            sb.Append(Environment.NewLine);
+            sb.Append("Options:");
+            sb.Append(Environment.NewLine);
+            sb.Append(
+                "> include-failed | includes records which have previously been processed but have failed (disabled by default)");
+            return sb.ToString();
+        }
+
         protected override void OnInitialize()
         {
+            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
+
             if (!File.Exists(FingerprintCalculationExecutablePath))
             {
-                throw new FileNotFoundException($"File '{FingerprintCalculationExecutablePath}' not found. Visit https://github.com/acoustid/chromaprint/releases to download the latest version.", FingerprintCalculationExecutablePath);
+                LoggerBundle.Fatal(new FileNotFoundException(
+                    $"File '{FingerprintCalculationExecutablePath}' not found. Visit https://github.com/acoustid/chromaprint/releases to download the latest version."
+                    , FingerprintCalculationExecutablePath));
+                Environment.Exit(1);
             }
 
+            LoggerBundle.Trace("Requesting config...");
             _config = RequestConfig<Config>();
+            LoggerBundle.Trace("Done");
+
+            RegisterAction("include-failed", () => _includeFailed = true);
         }
 
         protected override void Process(String[] args)
         {
-            _includeFailed = args.Select(x => x.ToLower()).Contains(ARG_KEY_INCLUDE_FAILED);
+            OnProcessStarting();
+            TriggerActions(args.ToList());
 
             List<Track> tracks;
 
             do
             {
-                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>(), Logger))
+                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>()))
                 {
-                    Logger?.Information?.Log("Preloading data...");
+                    LoggerBundle.Debug("Preloading data...");
                     Stopwatch sw = new Stopwatch();
                     sw.Start();
-                    tracks = _includeFailed ? dataContext.SetTracks.Where(x => !x.LastFingerprintCalculation.HasValue || null != x.FingerprintError).Take(_config.BufferSize).ToList() : dataContext.SetTracks.Where(x => !x.LastFingerprintCalculation.HasValue).Take(_config.BufferSize).ToList();
+                    tracks = _includeFailed
+                        ? dataContext.SetTracks.Where(x => !x.LastFingerprintCalculation.HasValue || null != x.FingerprintError)
+                            .Take(_config.BufferSize)
+                            .ToList()
+                        : dataContext.SetTracks.Where(x => !x.LastFingerprintCalculation.HasValue)
+                            .Take(_config.BufferSize)
+                            .ToList();
 
                     sw.Stop();
-                    Logger?.Information?.Log($"Getting data finished in {sw.ElapsedMilliseconds}ms");
+                    LoggerBundle.Debug($"Getting data finished in {sw.ElapsedMilliseconds}ms");
                 }
-                Logger?.Information?.Log($"Batch contains {tracks.Count} record(s).");
+                LoggerBundle.Inform($"Batch contains {tracks.Count} record(s).");
 
                 foreach (Track track in tracks)
                 {
+                    LoggerBundle.Trace($"Initializing process for track '{track}'...");
                     while (_buffer.Count >= _config.ParallelProcesses)
                     {
                         Thread.Sleep(1);
                     }
 
-                    Logger?.Information?.Log($"Initializing process for file '{track.Path}'...");
+                    LoggerBundle.Trace($"Starting process for track '{track}'...");
                     Process p = new Process
                     {
                         StartInfo =
@@ -91,11 +120,11 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                     p.OutputDataReceived += (_, arguments) => HandleStdOutput(arguments, track);
                     p.ErrorDataReceived += (_, arguments) => HandleErrOutput(arguments, track);
                     _buffer.Add(track);
-                    Logger?.Information?.Log($"Starting computation process for file '{track.Path}'...");
+                    LoggerBundle.Trace($"Starting computation process for file '{track}'...");
                     p.Start();
                     p.BeginOutputReadLine();
                     p.BeginErrorReadLine();
-                    Logger?.Information?.Log($"Process started for file '{track.Path}'");
+                    LoggerBundle.Debug($"Computation process started for file '{track}'");
                 }
             }
             while (tracks.Count > 0);
@@ -103,6 +132,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
 
         private void HandleErrOutput(DataReceivedEventArgs arguments, Track track)
         {
+            LoggerBundle.Trace($"Processing error response of track '{track}'...");
             try
             {
                 String output = arguments?.Data?.Trim();
@@ -111,22 +141,22 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                     return;
                 }
 
-                Logger?.Exception?.Log(new CalculationException(output));
+                LoggerBundle.Warn(new CalculationException(output));
                 track.FingerprintError = output;
                 track.LastFingerprintCalculation = DateTime.Now;
 
-                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>(), Logger))
+                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>()))
                 {
-                    Logger?.Information?.Log($"Saving file '{track.Path}'...");
+                    LoggerBundle.Trace($"Saving track '{track}'...");
                     dataContext.SetTracks.Attach(track);
                     dataContext.Entry(track).State = EntityState.Modified;
                     dataContext.SaveChanges();
-                    Logger?.Information?.Log($"Successfully saved file '{track.Path}'");
+                    LoggerBundle.Debug($"Successfully updated track '{track}'...");
                 }
             }
             catch (Exception ex)
             {
-                Logger?.Exception?.Log(ex);
+                LoggerBundle.Error(ex);
             }
             finally
             {
@@ -136,6 +166,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
 
         private void HandleStdOutput(DataReceivedEventArgs arguments, Track track)
         {
+            LoggerBundle.Trace($"Processing response of track '{track}'...");
             try
             {
                 String output = arguments?.Data?.Trim();
@@ -144,38 +175,43 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                     return;
                 }
 
-                Logger?.Information?.Log($"Process done for file '{track.Path}'");
-                Logger?.Information?.Log($"Trying to serialize computation output of file '{track.Path}'");
+                LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine
+                    , $"Trying to serialize computation output of file '{track}'...");
                 JsonFingerprint jfp = JsonConvert.DeserializeObject<JsonFingerprint>(output);
+                LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.PrefixLoggerType & ~LogFlags.PrefixTimeStamp, "Ok.");
+
                 track.LastFingerprintCalculation = DateTime.Now;
                 track.FingerprintHash = _hasher.Compute(jfp.Fingerprint);
                 track.FingerprintError = null;
 
-                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>(), Logger))
+                LoggerBundle.Trace($"Fingerprint hash: {track.FingerprintHash} for fingerprint {jfp.Fingerprint}");
+
+                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>()))
                 {
-                    Logger?.Information?.Log($"Checking for duplicates for file '{track.Path}'...");
+                    LoggerBundle.Trace($"Checking for duplicates for file '{track}'...");
                     if (dataContext.SetTracks.AsNoTracking().Any(x => x.FingerprintHash.Equals(track.FingerprintHash)))
                     {
-                        Logger?.Information?.Log($"File with same fingerprint already in database. Path '{track.Path}' will be skipped");
+                        LoggerBundle.Debug($"File with same fingerprint already in database. Path '{track}' will be skipped");
                         track.FingerprintError = "duplicate";
                     }
                     else
                     {
-                        Logger?.Information?.Log($"No duplicate found for file '{track.Path}.");
+                        LoggerBundle.Trace($"No duplicate found for file '{track}'");
                         track.Duration = jfp.Duration;
                         track.Fingerprint = jfp.Fingerprint;
+                        LoggerBundle.Trace($"New meta data duration '{track.Duration}' and fingerprint '{jfp.Fingerprint}'");
                     }
 
-                    Logger?.Information?.Log($"Saving file '{track.Path}'...");
+                    LoggerBundle.Trace($"Saving file '{track.Path}'...");
                     dataContext.SetTracks.Attach(track);
                     dataContext.Entry(track).State = EntityState.Modified;
                     dataContext.SaveChanges();
-                    Logger?.Information?.Log($"Successfully saved file '{track.Path}'...");
+                    LoggerBundle.Debug($"Successfully saved file '{track}'...");
                 }
             }
             catch (Exception ex)
             {
-                Logger?.Exception?.Log(ex);
+                LoggerBundle.Error(ex);
             }
             finally
             {

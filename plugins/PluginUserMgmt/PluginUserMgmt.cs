@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
-using ch.wuerth.tobias.mux.Core.exceptions;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
-using ch.wuerth.tobias.mux.Core.processor;
+using ch.wuerth.tobias.mux.Core.processing;
 using ch.wuerth.tobias.mux.Data;
 using ch.wuerth.tobias.mux.Data.models;
 using Microsoft.EntityFrameworkCore;
@@ -13,16 +12,18 @@ namespace ch.wuerth.tobias.mux.plugins.PluginUserMgmt
 {
     public class PluginUserMgmt : PluginBase
     {
-        public PluginUserMgmt(LoggerBundle logger) : base("user", logger) { }
+        public PluginUserMgmt() : base("user") { }
 
         protected override void OnInitialize()
         {
-            base.OnInitialize();
+            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
             RegisterAction("add", AddUser);
         }
 
         protected override void Process(String[] args)
         {
+            OnProcessStarting();
+
             if (args.Length.Equals(0))
             {
                 TriggerAction("help");
@@ -34,70 +35,67 @@ namespace ch.wuerth.tobias.mux.plugins.PluginUserMgmt
 
         private void AddUser()
         {
+            LoggerBundle.Debug("Starting process to add new user...");
             try
             {
                 // read username
-                Logger?.Information?.Log("Enter a username");
+                LoggerBundle.Inform(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine, "Enter a username: ");
                 String username = Console.ReadLine()?.Trim() ?? "";
 
                 if (String.IsNullOrWhiteSpace(username))
                 {
-                    Logger?.Exception?.Log(new ArgumentException("Username cannot be empty"));
-                    return;
+                    LoggerBundle.Fatal(new ArgumentException("Username cannot be empty"));
+                    Environment.Exit(1);
                 }
 
                 // check existance
-                Logger?.Information?.Log("Checking if user already exists...");
+                LoggerBundle.Debug("Checking if user already exists...");
                 Boolean exists;
-                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>(), Logger))
+                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>()))
                 {
                     exists = dataContext.SetUsers.Any(x => x.Username.ToLower().Equals(username.ToLower()));
                 }
                 if (exists)
                 {
-                    Logger?.Exception?.Log(new ArgumentException("Username already exists"));
-                    return;
+                    LoggerBundle.Fatal(new ArgumentException("Username already exists"));
+                    Environment.Exit(1);
                 }
 
-                Logger?.Information?.Log("User not found database. Allowed to proceed forward");
+                LoggerBundle.Trace("User not found database. Allowed to proceed forward");
 
                 // get password
-                Logger?.Information?.Log("Enter a password");
+                LoggerBundle.Inform(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine, "Enter a password: ");
                 String pw1 = ReadPassword();
-                Logger?.Information?.Log("Confirm password");
+                LoggerBundle.Inform(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine, "Confirm password: ");
                 String pw2 = ReadPassword();
 
                 if (!pw1.Equals(pw2))
                 {
-                    Logger?.Exception?.Log(new ArgumentException("Passwords do not match"));
-                    return;
+                    LoggerBundle.Fatal(new ArgumentException("Passwords do not match"));
+                    Environment.Exit(1);
                 }
 
                 // hash password
-                PasswordProcessor pp = new PasswordProcessor();
-                (String hashedPass, Boolean success) = pp.Handle(pw1, Logger);
-                if (!success)
-                {
-                    Logger?.Exception?.Log(new ProcessAbortedException());
-                    return;
-                }
+                Sha512HashPipe hashPipe = new Sha512HashPipe();
+                String hashedPw = hashPipe.Process(pw1);
 
                 // save model
                 User user = new User
                 {
                     Username = username
-                    , Password = hashedPass
+                    , Password = hashedPw
                 };
-                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>(), Logger))
+                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>()))
                 {
                     dataContext.SetUsers.Add(user);
                     dataContext.SaveChanges();
                 }
-                Logger?.Information?.Log($"User '{user.Username}' created with unique identifier '{user.UniqueId}'");
+                LoggerBundle.Inform(
+                    $"Successfully created user '{user.Username}' created with unique identifier '{user.UniqueId}'");
             }
             catch (Exception ex)
             {
-                Logger?.Exception?.Log(ex);
+                LoggerBundle.Error(ex);
             }
         }
 
@@ -122,11 +120,13 @@ namespace ch.wuerth.tobias.mux.plugins.PluginUserMgmt
             return sb.ToString();
         }
 
-        protected override void OnActionHelp(StringBuilder sb)
+        protected override String GetHelp()
         {
+            StringBuilder sb = new StringBuilder();
             sb.Append($"Usage: app {Name} <action>");
             sb.Append(Environment.NewLine);
-            sb.Append("Actions: add");
+            sb.Append("Actions: add | Create new user");
+            return sb.ToString();
         }
     }
 }

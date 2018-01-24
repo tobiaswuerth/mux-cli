@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using ch.wuerth.tobias.mux.Core.logging;
-using ch.wuerth.tobias.mux.Core.processor;
+using ch.wuerth.tobias.mux.Core.processing;
 using ch.wuerth.tobias.mux.Data;
 using ch.wuerth.tobias.mux.Data.models;
 using ch.wuerth.tobias.mux.Data.models.shadowentities;
@@ -13,11 +12,11 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 {
     public static class MusicBrainzMapper
     {
-        private static readonly DateTimeStringProcessor DateTimeProcessor = new DateTimeStringProcessor();
+        private static readonly DateTimeParserPipe DateTimeParserPipe = new DateTimeParserPipe();
 
-        public static MusicBrainzRelease Map(DataContext context, JsonMusicBrainzRequest.Release json, LoggerBundle logger)
+        public static MusicBrainzRelease Map(DataContext context, JsonMusicBrainzRequest.Release json)
         {
-            (DateTime? parsedDate, Boolean _) = DateTimeProcessor.Handle(json.Date, logger);
+            DateTime? parsedDate = DateTimeParserPipe.Process(json.Date);
 
             MusicBrainzRelease mbr = new MusicBrainzRelease
             {
@@ -47,7 +46,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             context.SaveChanges();
 
             // credits
-            List<MusicBrainzArtistCredit> credits = json.ArtistCredit?.Select(x => Map(context, x)).ToList() ?? new List<MusicBrainzArtistCredit>();
+            List<MusicBrainzArtistCredit> credits = json.ArtistCredit?.Select(x => Map(context, x)).ToList()
+                ?? new List<MusicBrainzArtistCredit>();
             mbr.MusicBrainzReleaseMusicBrainzArtistCredits = credits.Select(x => new MusicBrainzReleaseMusicBrainzArtistCredit
                 {
                     MusicBrainzRelease = mbr
@@ -58,18 +58,21 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                 .ToList();
 
             // release events
-            List<MusicBrainzReleaseEvent> releaseEvents = json.ReleaseEvents?.Select(x => Map(context, x, logger)).ToList() ?? new List<MusicBrainzReleaseEvent>();
-            mbr.MusicBrainzReleaseEventMusicBrainzReleases = releaseEvents.Select(x => new MusicBrainzReleaseEventMusicBrainzRelease
-                {
-                    MusicBrainzRelease = mbr
-                    , MusicBrainzReleaseUniqueId = mbr.UniqueId
-                    , MusicBrainzReleaseEvent = x
-                    , MusicBrainzReleaseEventUniqueId = x.UniqueId
-                })
+            List<MusicBrainzReleaseEvent> releaseEvents = json.ReleaseEvents?.Select(x => Map(context, x)).ToList()
+                ?? new List<MusicBrainzReleaseEvent>();
+            mbr.MusicBrainzReleaseEventMusicBrainzReleases = releaseEvents.Select(x
+                    => new MusicBrainzReleaseEventMusicBrainzRelease
+                    {
+                        MusicBrainzRelease = mbr
+                        , MusicBrainzReleaseUniqueId = mbr.UniqueId
+                        , MusicBrainzReleaseEvent = x
+                        , MusicBrainzReleaseEventUniqueId = x.UniqueId
+                    })
                 .ToList();
 
             // aliases
-            List<MusicBrainzAlias> aliases = json.Aliases?.Select(x => Map(context, x)).ToList() ?? new List<MusicBrainzAlias>();
+            List<MusicBrainzAlias> aliases =
+                json.Aliases?.Select(x => Map(context, x)).ToList() ?? new List<MusicBrainzAlias>();
             mbr.MusicBrainzReleaseMusicBrainzAliases = aliases.Select(x => new MusicBrainzReleaseMusicBrainzAlias
                 {
                     MusicBrainzRelease = mbr
@@ -85,7 +88,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             return mbr;
         }
 
-        private static MusicBrainzTextRepresentation Map(DataContext context, JsonMusicBrainzRequest.Release.ClaTextRepresentation json)
+        private static MusicBrainzTextRepresentation Map(DataContext context
+            , JsonMusicBrainzRequest.Release.ClaTextRepresentation json)
         {
             MusicBrainzTextRepresentation obj = new MusicBrainzTextRepresentation
             {
@@ -94,7 +98,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             };
             obj.UniqueHash = Comparator.ComputeContentHash(obj);
 
-            MusicBrainzTextRepresentation dbObj = context.SetTextRepresentations.FirstOrDefault(x => x.UniqueHash.Equals(obj.UniqueHash));
+            MusicBrainzTextRepresentation dbObj =
+                context.SetTextRepresentations.FirstOrDefault(x => x.UniqueHash.Equals(obj.UniqueHash));
 
             if (null != dbObj)
             {
@@ -143,7 +148,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             };
             artist.UniqueHash = Comparator.ComputeContentHash(artist);
 
-            List<MusicBrainzAlias> aliases = json.Aliases?.Select(x => Map(context, x)).ToList() ?? new List<MusicBrainzAlias>();
+            List<MusicBrainzAlias> aliases =
+                json.Aliases?.Select(x => Map(context, x)).ToList() ?? new List<MusicBrainzAlias>();
             MusicBrainzArtist dbArtist = context.SetArtists.FirstOrDefault(x => x.UniqueHash.Equals(artist.UniqueHash));
 
             if (null != dbArtist)
@@ -162,7 +168,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                 }
 
                 // check if any new references were added
-                IEnumerable<String> dbAliasHashes = dbArtist.MusicBrainzArtistMusicBrainzAliases.Select(x => x.MusicBrainzAlias.UniqueHash);
+                IEnumerable<String> dbAliasHashes =
+                    dbArtist.MusicBrainzArtistMusicBrainzAliases.Select(x => x.MusicBrainzAlias.UniqueHash);
                 IEnumerable<String> newRefsHashes = aliases.Select(x => x.UniqueHash).Except(dbAliasHashes);
                 List<MusicBrainzAlias> newRefs = aliases.Where(x => newRefsHashes.Contains(x.UniqueHash)).ToList();
 
@@ -173,13 +180,14 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                 }
 
                 // new references found
-                dbArtist.MusicBrainzArtistMusicBrainzAliases.AddRange(newRefs.Select(x => new MusicBrainzArtistMusicBrainzAlias
-                {
-                    MusicBrainzArtist = dbArtist
-                    , MusicBrainzArtistUniqueId = dbArtist.UniqueId
-                    , MusicBrainzAlias = x
-                    , MusicBrainzAliasUniqueId = x.UniqueId
-                }));
+                dbArtist.MusicBrainzArtistMusicBrainzAliases.AddRange(newRefs.Select(x
+                    => new MusicBrainzArtistMusicBrainzAlias
+                    {
+                        MusicBrainzArtist = dbArtist
+                        , MusicBrainzArtistUniqueId = dbArtist.UniqueId
+                        , MusicBrainzAlias = x
+                        , MusicBrainzAliasUniqueId = x.UniqueId
+                    }));
 
                 context.SaveChanges();
 
@@ -237,9 +245,9 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             return obj;
         }
 
-        private static MusicBrainzReleaseEvent Map(DataContext context, JsonMusicBrainzRequest.Release.ReleaseEvent json, LoggerBundle logger)
+        private static MusicBrainzReleaseEvent Map(DataContext context, JsonMusicBrainzRequest.Release.ReleaseEvent json)
         {
-            (DateTime? parsedDate, Boolean _) = DateTimeProcessor.Handle(json.Date, logger);
+            DateTime? parsedDate = DateTimeParserPipe.Process(json.Date);
 
             MusicBrainzReleaseEvent obj = new MusicBrainzReleaseEvent
             {
@@ -284,7 +292,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             context.SetAreas.Add(obj);
             context.SaveChanges();
 
-            List<MusicBrainzIsoCode> isoCodes = json.Iso31661Codes?.Select(x => Map(context, x)).ToList() ?? new List<MusicBrainzIsoCode>();
+            List<MusicBrainzIsoCode> isoCodes =
+                json.Iso31661Codes?.Select(x => Map(context, x)).ToList() ?? new List<MusicBrainzIsoCode>();
             obj.MusicBrainzIsoCodeMusicBrainzAreas = isoCodes.Select(x => new MusicBrainzIsoCodeMusicBrainzArea
                 {
                     MusicBrainzArea = obj

@@ -20,15 +20,19 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 
         private DateTime _lastRequest = DateTime.MinValue;
 
-        public AcoustIdApiHandler(LoggerBundle logger, String apiKey)
+        public AcoustIdApiHandler(String apiKey)
         {
+            LoggerBundle.Trace($"Initializing AcoustId API Handler with Kes '{apiKey}'");
             _apiKey = apiKey;
 
-            logger?.Information?.Log($"Notice: The AcoustId API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
+            LoggerBundle.Inform(
+                $"Notice: The AcoustId API is throttled to a maximum of {MAX_REQUESTS_PER_SECOND} requests per second due to their policy.");
         }
 
         public Object Post(Double duration, String fingerprint)
         {
+            LoggerBundle.Trace(
+                $"Received post request for a track with duration '{duration}' and fingerprint {fingerprint}...");
             while ((DateTime.Now - _lastRequest).TotalMilliseconds < DELAY_BETWEEN_REQUESTS)
             {
                 Thread.Sleep(1);
@@ -56,9 +60,14 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 
             FormUrlEncodedContent content = new FormUrlEncodedContent(values);
             _lastRequest = DateTime.Now;
+
+            LoggerBundle.Trace("Executing async post...");
             Task<HttpResponseMessage> response = _client.PostAsync(API_ENDPOINT, content);
             Task<String> responseString = response.Result.Content.ReadAsStringAsync();
+            LoggerBundle.Trace("Async post done.");
+
             String result = responseString.Result.Trim();
+            LoggerBundle.Trace($"Result: {result}");
 
             JsonStatus status = JsonConvert.DeserializeObject<JsonStatus>(result);
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using ch.wuerth.tobias.mux.Core.data;
 using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
@@ -16,47 +17,53 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
     {
         private Config _config;
 
-        public PluginImport(LoggerBundle logger) : base("import", logger) { }
+        public PluginImport() : base("import") { }
 
         protected override void OnInitialize()
         {
+            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
+
+            LoggerBundle.Trace("Requesting config...");
             _config = RequestConfig<Config>();
+            LoggerBundle.Trace("Done.");
         }
 
         protected override void Process(String[] args)
         {
-            // every arg should be a directory path
+            OnProcessStarting();
+            TriggerActions(args.ToList());
 
             List<String> paths = args.Distinct().Select(x => x.Trim()).ToList();
             if (paths.Count.Equals(0))
             {
-                Logger?.Exception?.Log(new ArgumentException("at least one argument has to be passed"));
-                return;
+                LoggerBundle.Fatal(new ArgumentException("no argument given"));
+                Environment.Exit(1);
             }
 
             foreach (String path in paths)
             {
+                LoggerBundle.Inform($"Processing path '{path}'...");
                 if (!Directory.Exists(path))
                 {
-                    Logger?.Information?.Log($"Path '{path}' not found. Skipping.");
+                    LoggerBundle.Warn($"Path '{path}' not found. Skipping.");
                     continue;
                 }
 
-                Logger?.Information?.Log("Preloading data...");
+                LoggerBundle.Debug("Preloading data...");
                 List<String> tracks;
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
-                using (DataContext context = new DataContext(new DbContextOptions<DataContext>(), Logger))
+                using (DataContext context = new DataContext(new DbContextOptions<DataContext>()))
                 {
                     tracks = context.SetTracks.AsNoTracking().Select(x => x.Path).ToList();
                 }
                 sw.Stop();
-                Logger?.Information?.Log($"Getting data finished in {sw.ElapsedMilliseconds}ms");
+                LoggerBundle.Debug($"Getting data finished in {sw.ElapsedMilliseconds}ms");
 
                 List<String> buffer = new List<String>();
                 DataSource<String> ds = new PathDataSource(path, _config.Extensions);
 
-                Logger?.Information?.Log($"Start to crawl path '{path}'...");
+                LoggerBundle.Inform($"Start to crawl path '{path}'...");
                 foreach (String file in ds.Get())
                 {
                     buffer.Add(file);
@@ -64,9 +71,9 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
                     Int32 bufferCount = buffer.Count;
                     if (bufferCount < _config.BufferSize)
                     {
-                        if (bufferCount % 5000 == 0)
+                        if (bufferCount % (_config.BufferSize < 1337 ? _config.BufferSize : 1337) == 0)
                         {
-                            Logger?.Information?.Log($"Adding files to buffer [{bufferCount}/{_config.BufferSize}] ...");
+                            LoggerBundle.Trace($"Adding files to buffer [{bufferCount}/{_config.BufferSize}] ...");
                         }
                         continue;
                     }
@@ -78,20 +85,29 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
             }
         }
 
+        protected override String GetHelp()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"Usage: app {Name} <path1> [<path2>...]");
+            sb.Append(Environment.NewLine);
+            sb.Append("> path-n | Path to directory to import from");
+            return sb.ToString();
+        }
+
         private void ProcessBuffer(ref List<String> buffer, ref List<String> tracks)
         {
-            Logger?.Information?.Log("Buffer full. Starting to process...");
+            LoggerBundle.Debug("Buffer full. Searching new entries...");
             List<String> newPaths = buffer.Except(tracks).ToList();
             Int32 newPathsCount = newPaths.Count;
-            Logger?.Information?.Log($"{newPathsCount} new files found in buffer");
+            LoggerBundle.Debug($"{newPathsCount} new files found");
 
-            Logger?.Information?.Log("Saving to database...");
+            LoggerBundle.Debug("Saving to database...");
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            using (DataContext context = new DataContext(new DbContextOptions<DataContext>(), Logger))
+            using (DataContext context = new DataContext(new DbContextOptions<DataContext>()))
             {
                 context.ChangeTracker.AutoDetectChangesEnabled = false;
-                // todo disable validation on save (haven't found feature in EF .net core yet)
+                // todo disable validation on save
 
                 for (Int32 i = 0 ; i < newPathsCount ; i++)
                 {
@@ -99,13 +115,13 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
                     {
                         Path = newPaths[i]
                     });
-                    if (i % 1000 != 0)
+                    if (i % 1337 != 0)
                     {
                         continue;
                     }
 
                     context.SaveChanges();
-                    Logger?.Information?.Log($"Saved {i + 1}/{newPathsCount}...");
+                    LoggerBundle.Trace($"Saved {i + 1}/{newPathsCount}...");
                 }
 
                 context.SaveChanges();
@@ -113,11 +129,11 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
 
             sw.Stop();
             Int64 elms = sw.ElapsedMilliseconds;
-            Logger?.Information?.Log($"Saved {newPathsCount} items in {elms}ms ({(Double) elms / newPathsCount}ms per item average)");
+            LoggerBundle.Debug($"Saved {newPathsCount} items in {elms}ms ({(Double) elms / newPathsCount}ms per item average)");
 
             tracks.AddRange(newPaths);
             buffer.Clear();
-            Logger?.Information?.Log("Finished processing");
+            LoggerBundle.Debug("Finished processing buffer. Returning.");
         }
     }
 }
