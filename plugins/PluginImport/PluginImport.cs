@@ -21,18 +21,17 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
 
         protected override void OnInitialize()
         {
+            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
+
             LoggerBundle.Trace("Requesting config...");
             _config = RequestConfig<Config>();
             LoggerBundle.Trace("Done.");
-            LoggerBundle.Trace($"BufferSize: {_config.BufferSize}");
-            LoggerBundle.Trace("Extensions:");
-            _config.Extensions.ForEach(x => LoggerBundle.Trace($"+ {x}"));
         }
 
         protected override void Process(String[] args)
         {
             OnProcessStarting();
-            // every arg should be a directory path
+            TriggerActions(args.ToList());
 
             List<String> paths = args.Distinct().Select(x => x.Trim()).ToList();
             if (paths.Count.Equals(0))
