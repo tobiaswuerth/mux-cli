@@ -58,6 +58,8 @@ namespace ch.wuerth.tobias.mux.App
             ProgramConfig config;
             try
             {
+                LoggerBundle.Trace("Trying to parse to following arguments:");
+                args.ToList().ForEach(x => LoggerBundle.Trace($"+ '{x}'"));
                 config = CliParser.Parse<ProgramConfig>(args);
             }
             catch (Exception ex)
@@ -85,7 +87,7 @@ namespace ch.wuerth.tobias.mux.App
                     LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine
                         , $"Trying to create directory '{x}'...");
                     Directory.CreateDirectory(x);
-                    LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.PrefixLoggerType & ~LogFlags.PrefixTimeStamp, $"Ok.");
+                    LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.PrefixLoggerType & ~LogFlags.PrefixTimeStamp, "Ok.");
                 });
         }
 

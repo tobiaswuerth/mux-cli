@@ -174,7 +174,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                 {
                     return;
                 }
-                
+
                 LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine
                     , $"Trying to serialize computation output of file '{track}'...");
                 JsonFingerprint jfp = JsonConvert.DeserializeObject<JsonFingerprint>(output);

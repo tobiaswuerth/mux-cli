@@ -16,13 +16,14 @@ namespace ch.wuerth.tobias.mux.plugins.PluginUserMgmt
 
         protected override void OnInitialize()
         {
-            base.OnInitialize();
+            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
             RegisterAction("add", AddUser);
         }
 
         protected override void Process(String[] args)
         {
-            LoggerBundle.Inform($"Plugin {Name} starting...");
+            OnProcessStarting();
+
             if (args.Length.Equals(0))
             {
                 TriggerAction("help");
@@ -89,7 +90,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginUserMgmt
                     dataContext.SetUsers.Add(user);
                     dataContext.SaveChanges();
                 }
-                LoggerBundle.Inform($"User '{user.Username}' created with unique identifier '{user.UniqueId}'");
+                LoggerBundle.Inform(
+                    $"Successfully created user '{user.Username}' created with unique identifier '{user.UniqueId}'");
             }
             catch (Exception ex)
             {
