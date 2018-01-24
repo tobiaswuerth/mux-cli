@@ -25,7 +25,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 
         protected override void OnInitialize()
         {
-            base.OnInitialize();
+            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
 
             LoggerBundle.Trace("Requesting config...");
             _config = RequestConfig<Config>();
@@ -191,9 +191,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
                             }
                             case JsonAcoustIdRequest air:
                             {
-                                LoggerBundle.Debug("Processing response...");
                                 HandleResponse(context, track, air);
-                                LoggerBundle.Debug("Processing done");
                                 break;
                             }
                             default:

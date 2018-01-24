@@ -60,10 +60,12 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 
             FormUrlEncodedContent content = new FormUrlEncodedContent(values);
             _lastRequest = DateTime.Now;
+
             LoggerBundle.Trace("Executing async post...");
             Task<HttpResponseMessage> response = _client.PostAsync(API_ENDPOINT, content);
             Task<String> responseString = response.Result.Content.ReadAsStringAsync();
             LoggerBundle.Trace("Async post done.");
+
             String result = responseString.Result.Trim();
             LoggerBundle.Trace($"Result: {result}");
 
