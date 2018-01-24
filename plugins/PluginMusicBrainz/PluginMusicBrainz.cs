@@ -22,6 +22,8 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 
         protected override void OnInitialize()
         {
+            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
+
             LoggerBundle.Trace("Requesting config...");
             _config = RequestConfig<Config>();
             LoggerBundle.Trace("Done.");
@@ -35,11 +37,14 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 
         protected override void Process(String[] args)
         {
+            OnProcessStarting();
+            TriggerActions(args.ToList());
+
             List<MusicBrainzRecord> data;
 
             do
             {
-                LoggerBundle.Inform("Getting data...");
+                LoggerBundle.Debug("Getting data...");
                 using (DataContext context = new DataContext(new DbContextOptions<DataContext>()))
                 {
                     data = context.SetMusicBrainzRecords.Where(x => null == x.LastMusicBrainzApiCall)
