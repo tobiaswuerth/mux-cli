@@ -19,6 +19,15 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
 
         public PluginImport() : base("import") { }
 
+        protected override String GetHelp()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"Usage: app {Name} <path1> [<path2>...]");
+            sb.Append(Environment.NewLine);
+            sb.Append("> path-n | Path to directory to import from");
+            return sb.ToString();
+        }
+
         protected override void OnInitialize()
         {
             LoggerBundle.Debug($"Initializing plugin '{Name}'...");
@@ -53,9 +62,9 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
                 List<String> tracks;
                 Stopwatch sw = new Stopwatch();
                 sw.Start();
-                using (DataContext context = new DataContext(new DbContextOptions<DataContext>()))
+                using (DataContext dataContext = DataContextFactory.GetInstance())
                 {
-                    tracks = context.SetTracks.AsNoTracking().Select(x => x.Path).ToList();
+                    tracks = dataContext.SetTracks.AsNoTracking().Select(x => x.Path).ToList();
                 }
                 sw.Stop();
                 LoggerBundle.Debug($"Getting data finished in {sw.ElapsedMilliseconds}ms");
@@ -85,15 +94,6 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
             }
         }
 
-        protected override String GetHelp()
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.Append($"Usage: app {Name} <path1> [<path2>...]");
-            sb.Append(Environment.NewLine);
-            sb.Append("> path-n | Path to directory to import from");
-            return sb.ToString();
-        }
-
         private void ProcessBuffer(ref List<String> buffer, ref List<String> tracks)
         {
             LoggerBundle.Debug("Buffer full. Searching new entries...");
@@ -104,14 +104,14 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
             LoggerBundle.Debug("Saving to database...");
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            using (DataContext context = new DataContext(new DbContextOptions<DataContext>()))
+            using (DataContext dataContext = DataContextFactory.GetInstance())
             {
-                context.ChangeTracker.AutoDetectChangesEnabled = false;
+                dataContext.ChangeTracker.AutoDetectChangesEnabled = false;
                 // todo disable validation on save
 
                 for (Int32 i = 0 ; i < newPathsCount ; i++)
                 {
-                    context.SetTracks.Add(new Track
+                    dataContext.SetTracks.Add(new Track
                     {
                         Path = newPaths[i]
                     });
@@ -120,11 +120,11 @@ namespace ch.wuerth.tobias.mux.plugins.PluginImport
                         continue;
                     }
 
-                    context.SaveChanges();
+                    dataContext.SaveChanges();
                     LoggerBundle.Trace($"Saved {i + 1}/{newPathsCount}...");
                 }
 
-                context.SaveChanges();
+                dataContext.SaveChanges();
             }
 
             sw.Stop();

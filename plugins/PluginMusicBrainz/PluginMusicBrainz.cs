@@ -20,87 +20,6 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 
         public PluginMusicBrainz() : base("musicbrainz") { }
 
-        protected override void OnInitialize()
-        {
-            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
-
-            LoggerBundle.Trace("Requesting config...");
-            _config = RequestConfig<Config>();
-            LoggerBundle.Trace("Done.");
-        }
-
-        protected override void OnProcessStarting()
-        {
-            base.OnProcessStarting();
-            _api = new MusicBrainzApiHandler();
-        }
-
-        protected override void Process(String[] args)
-        {
-            OnProcessStarting();
-            TriggerActions(args.ToList());
-
-            List<MusicBrainzRecord> data;
-
-            do
-            {
-                LoggerBundle.Debug("Getting data...");
-                using (DataContext context = new DataContext(new DbContextOptions<DataContext>()))
-                {
-                    data = context.SetMusicBrainzRecords.Where(x => null == x.LastMusicBrainzApiCall)
-                        .Include(x => x.MusicBrainzAliasMusicBrainzRecords)
-                        .ThenInclude(x => x.MusicBrainzAlias)
-                        .Include(x => x.MusicBrainzArtistCreditMusicBrainzRecords)
-                        .ThenInclude(x => x.MusicBrainzArtistCredit)
-                        .Include(x => x.MusicBrainzReleaseMusicBrainzRecords)
-                        .ThenInclude(x => x.MusicBrainzRelease)
-                        .Include(x => x.MusicBrainzTagMusicBrainzRecords)
-                        .ThenInclude(x => x.MusicBrainzTag)
-                        .OrderBy(x => x.UniqueId)
-                        .Take(_config.BatchSize)
-                        .ToList();
-
-                    LoggerBundle.Inform($"Batch containing: {data.Count} entries");
-
-                    foreach (MusicBrainzRecord mbr in data)
-                    {
-                        try
-                        {
-                            LoggerBundle.Debug($"Processing record '{mbr}'...");
-
-                            DateTime requestTime = DateTime.Now;
-                            Object o = _api.Get(mbr.MusicbrainzId);
-
-                            Stopwatch sw = new Stopwatch();
-                            sw.Start();
-
-                            switch (o)
-                            {
-                                case JsonMusicBrainzRequest req:
-                                    HandleResponse(mbr, req, context);
-                                    break;
-                                case JsonErrorMusicBrainz err:
-                                    mbr.MusicBrainzApiCallError = err.Error?.Trim() ?? "<unknown>";
-                                    LoggerBundle.Warn(new MusicBrainzApiException($"Error: {mbr.MusicBrainzApiCallError}"));
-                                    break;
-                            }
-
-                            mbr.LastMusicBrainzApiCall = requestTime;
-                            context.SaveChanges();
-
-                            sw.Stop();
-                            LoggerBundle.Debug($"Processing done in {sw.ElapsedMilliseconds}ms");
-                        }
-                        catch (Exception ex)
-                        {
-                            LoggerBundle.Error(ex);
-                        }
-                    }
-                }
-            }
-            while (data.Count > 0);
-        }
-
         private void HandleResponse(MusicBrainzRecord mbr, JsonMusicBrainzRequest json, DataContext context)
         {
             LoggerBundle.Trace("Handling response...");
@@ -187,6 +106,87 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                         => y.MusicBrainzTagUniqueId.Equals(x.MusicBrainzTagUniqueId)
                             && y.MusicBrainzRecordUniqueId.Equals(x.MusicBrainzRecordUniqueId))))
                 .ToList();
+        }
+
+        protected override void OnInitialize()
+        {
+            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
+
+            LoggerBundle.Trace("Requesting config...");
+            _config = RequestConfig<Config>();
+            LoggerBundle.Trace("Done.");
+        }
+
+        protected override void OnProcessStarting()
+        {
+            base.OnProcessStarting();
+            _api = new MusicBrainzApiHandler();
+        }
+
+        protected override void Process(String[] args)
+        {
+            OnProcessStarting();
+            TriggerActions(args.ToList());
+
+            List<MusicBrainzRecord> data;
+
+            do
+            {
+                LoggerBundle.Debug("Getting data...");
+                using (DataContext dataContext = DataContextFactory.GetInstance())
+                {
+                    data = dataContext.SetMusicBrainzRecords.Where(x => null == x.LastMusicBrainzApiCall)
+                        .Include(x => x.MusicBrainzAliasMusicBrainzRecords)
+                        .ThenInclude(x => x.MusicBrainzAlias)
+                        .Include(x => x.MusicBrainzArtistCreditMusicBrainzRecords)
+                        .ThenInclude(x => x.MusicBrainzArtistCredit)
+                        .Include(x => x.MusicBrainzReleaseMusicBrainzRecords)
+                        .ThenInclude(x => x.MusicBrainzRelease)
+                        .Include(x => x.MusicBrainzTagMusicBrainzRecords)
+                        .ThenInclude(x => x.MusicBrainzTag)
+                        .OrderBy(x => x.UniqueId)
+                        .Take(_config.BatchSize)
+                        .ToList();
+
+                    LoggerBundle.Inform($"Batch containing: {data.Count} entries");
+
+                    foreach (MusicBrainzRecord mbr in data)
+                    {
+                        try
+                        {
+                            LoggerBundle.Debug($"Processing record '{mbr}'...");
+
+                            DateTime requestTime = DateTime.Now;
+                            Object o = _api.Get(mbr.MusicbrainzId);
+
+                            Stopwatch sw = new Stopwatch();
+                            sw.Start();
+
+                            switch (o)
+                            {
+                                case JsonMusicBrainzRequest req:
+                                    HandleResponse(mbr, req, dataContext);
+                                    break;
+                                case JsonErrorMusicBrainz err:
+                                    mbr.MusicBrainzApiCallError = err.Error?.Trim() ?? "<unknown>";
+                                    LoggerBundle.Warn(new MusicBrainzApiException($"Error: {mbr.MusicBrainzApiCallError}"));
+                                    break;
+                            }
+
+                            mbr.LastMusicBrainzApiCall = requestTime;
+                            dataContext.SaveChanges();
+
+                            sw.Stop();
+                            LoggerBundle.Debug($"Processing done in {sw.ElapsedMilliseconds}ms");
+                        }
+                        catch (Exception ex)
+                        {
+                            LoggerBundle.Error(ex);
+                        }
+                    }
+                }
+            }
+            while (data.Count > 0);
         }
     }
 }

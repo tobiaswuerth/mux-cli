@@ -49,6 +49,95 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
             return sb.ToString();
         }
 
+        private void HandleErrOutput(DataReceivedEventArgs arguments, Track track)
+        {
+            LoggerBundle.Trace($"Processing error response of track '{track}'...");
+            try
+            {
+                String output = arguments?.Data?.Trim();
+                if (String.IsNullOrEmpty(output))
+                {
+                    return;
+                }
+
+                LoggerBundle.Warn(new CalculationException(output));
+                track.FingerprintError = output;
+                track.LastFingerprintCalculation = DateTime.Now;
+
+                using (DataContext dataContext = DataContextFactory.GetInstance())
+                {
+                    LoggerBundle.Trace($"Saving track '{track}'...");
+                    dataContext.SetTracks.Attach(track);
+                    dataContext.Entry(track).State = EntityState.Modified;
+                    dataContext.SaveChanges();
+                    LoggerBundle.Debug($"Successfully updated track '{track}'...");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerBundle.Error(ex);
+            }
+            finally
+            {
+                _buffer.Remove(track);
+            }
+        }
+
+        private void HandleStdOutput(DataReceivedEventArgs arguments, Track track)
+        {
+            LoggerBundle.Trace($"Processing response of track '{track}'...");
+            try
+            {
+                String output = arguments?.Data?.Trim();
+                if (String.IsNullOrEmpty(output))
+                {
+                    return;
+                }
+
+                LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine
+                    , $"Trying to serialize computation output of file '{track}'...");
+                JsonFingerprint jfp = JsonConvert.DeserializeObject<JsonFingerprint>(output);
+                LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.PrefixLoggerType & ~LogFlags.PrefixTimeStamp, "Ok.");
+
+                track.LastFingerprintCalculation = DateTime.Now;
+                track.FingerprintHash = _hasher.Compute(jfp.Fingerprint);
+                track.FingerprintError = null;
+
+                LoggerBundle.Trace($"Fingerprint hash: {track.FingerprintHash} for fingerprint {jfp.Fingerprint}");
+
+                using (DataContext dataContext = DataContextFactory.GetInstance())
+                {
+                    LoggerBundle.Trace($"Checking for duplicates for file '{track}'...");
+                    if (dataContext.SetTracks.AsNoTracking().Any(x => x.FingerprintHash.Equals(track.FingerprintHash)))
+                    {
+                        LoggerBundle.Debug($"File with same fingerprint already in database. Path '{track}' will be skipped");
+                        track.FingerprintError = "duplicate";
+                    }
+                    else
+                    {
+                        LoggerBundle.Trace($"No duplicate found for file '{track}'");
+                        track.Duration = jfp.Duration;
+                        track.Fingerprint = jfp.Fingerprint;
+                        LoggerBundle.Trace($"New meta data duration '{track.Duration}' and fingerprint '{jfp.Fingerprint}'");
+                    }
+
+                    LoggerBundle.Trace($"Saving file '{track.Path}'...");
+                    dataContext.SetTracks.Attach(track);
+                    dataContext.Entry(track).State = EntityState.Modified;
+                    dataContext.SaveChanges();
+                    LoggerBundle.Debug($"Successfully saved file '{track}'...");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerBundle.Error(ex);
+            }
+            finally
+            {
+                _buffer.Remove(track);
+            }
+        }
+
         protected override void OnInitialize()
         {
             LoggerBundle.Debug($"Initializing plugin '{Name}'...");
@@ -77,7 +166,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
 
             do
             {
-                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>()))
+                using (DataContext dataContext = DataContextFactory.GetInstance())
                 {
                     LoggerBundle.Debug("Preloading data...");
                     Stopwatch sw = new Stopwatch();
@@ -128,95 +217,6 @@ namespace ch.wuerth.tobias.mux.plugins.PluginChromaprint
                 }
             }
             while (tracks.Count > 0);
-        }
-
-        private void HandleErrOutput(DataReceivedEventArgs arguments, Track track)
-        {
-            LoggerBundle.Trace($"Processing error response of track '{track}'...");
-            try
-            {
-                String output = arguments?.Data?.Trim();
-                if (String.IsNullOrEmpty(output))
-                {
-                    return;
-                }
-
-                LoggerBundle.Warn(new CalculationException(output));
-                track.FingerprintError = output;
-                track.LastFingerprintCalculation = DateTime.Now;
-
-                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>()))
-                {
-                    LoggerBundle.Trace($"Saving track '{track}'...");
-                    dataContext.SetTracks.Attach(track);
-                    dataContext.Entry(track).State = EntityState.Modified;
-                    dataContext.SaveChanges();
-                    LoggerBundle.Debug($"Successfully updated track '{track}'...");
-                }
-            }
-            catch (Exception ex)
-            {
-                LoggerBundle.Error(ex);
-            }
-            finally
-            {
-                _buffer.Remove(track);
-            }
-        }
-
-        private void HandleStdOutput(DataReceivedEventArgs arguments, Track track)
-        {
-            LoggerBundle.Trace($"Processing response of track '{track}'...");
-            try
-            {
-                String output = arguments?.Data?.Trim();
-                if (String.IsNullOrEmpty(output))
-                {
-                    return;
-                }
-
-                LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine
-                    , $"Trying to serialize computation output of file '{track}'...");
-                JsonFingerprint jfp = JsonConvert.DeserializeObject<JsonFingerprint>(output);
-                LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.PrefixLoggerType & ~LogFlags.PrefixTimeStamp, "Ok.");
-
-                track.LastFingerprintCalculation = DateTime.Now;
-                track.FingerprintHash = _hasher.Compute(jfp.Fingerprint);
-                track.FingerprintError = null;
-
-                LoggerBundle.Trace($"Fingerprint hash: {track.FingerprintHash} for fingerprint {jfp.Fingerprint}");
-
-                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>()))
-                {
-                    LoggerBundle.Trace($"Checking for duplicates for file '{track}'...");
-                    if (dataContext.SetTracks.AsNoTracking().Any(x => x.FingerprintHash.Equals(track.FingerprintHash)))
-                    {
-                        LoggerBundle.Debug($"File with same fingerprint already in database. Path '{track}' will be skipped");
-                        track.FingerprintError = "duplicate";
-                    }
-                    else
-                    {
-                        LoggerBundle.Trace($"No duplicate found for file '{track}'");
-                        track.Duration = jfp.Duration;
-                        track.Fingerprint = jfp.Fingerprint;
-                        LoggerBundle.Trace($"New meta data duration '{track.Duration}' and fingerprint '{jfp.Fingerprint}'");
-                    }
-
-                    LoggerBundle.Trace($"Saving file '{track.Path}'...");
-                    dataContext.SetTracks.Attach(track);
-                    dataContext.Entry(track).State = EntityState.Modified;
-                    dataContext.SaveChanges();
-                    LoggerBundle.Debug($"Successfully saved file '{track}'...");
-                }
-            }
-            catch (Exception ex)
-            {
-                LoggerBundle.Error(ex);
-            }
-            finally
-            {
-                _buffer.Remove(track);
-            }
         }
     }
 }

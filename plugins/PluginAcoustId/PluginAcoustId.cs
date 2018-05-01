@@ -23,31 +23,36 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
 
         public PluginAcoustId() : base("AcoustId") { }
 
-        protected override void OnInitialize()
+        protected override String GetHelp()
         {
-            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
-
-            LoggerBundle.Trace("Requesting config...");
-            _config = RequestConfig<Config>();
-            LoggerBundle.Trace("Done");
-
-            RegisterAction("include-failed", () => _includeFailed = true);
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"Usage: app {Name} [<options>...]");
+            sb.Append(Environment.NewLine);
+            sb.Append("Options:");
+            sb.Append(Environment.NewLine);
+            sb.Append(
+                "> include-failed | includes records which have previously been processed but have failed (disabled by default)");
+            return sb.ToString();
         }
 
-        protected override void OnProcessStarting()
+        private static AcoustId HandleAcoustId(DataContext context, JsonAcoustIdRequest.JsonResult json)
         {
-            base.OnProcessStarting();
-            _apiHandler = new AcoustIdApiHandler(_config.ApiKey);
-        }
+            AcoustId dbAid = context.SetAcoustIds.FirstOrDefault(y => y.Id.Equals(json.Id));
 
-        private static void HandleResponse(DataContext context, Track track, JsonAcoustIdRequest air)
-        {
-            air.Results?.ForEach(x =>
+            if (null != dbAid)
             {
-                AcoustId dbAid = HandleAcoustId(context, x);
-                HandleResult(context, track, dbAid, x);
-                HandleRecordings(context, x, dbAid);
-            });
+                return dbAid;
+            }
+
+            // does not exist in database yet
+            dbAid = new AcoustId
+            {
+                Id = json.Id
+            };
+            context.SetAcoustIds.Add(dbAid);
+            context.SaveChanges();
+
+            return dbAid;
         }
 
         private static void HandleRecordings(DataContext context, JsonAcoustIdRequest.JsonResult json, AcoustId ai)
@@ -98,6 +103,16 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
             });
         }
 
+        private static void HandleResponse(DataContext context, Track track, JsonAcoustIdRequest air)
+        {
+            air.Results?.ForEach(x =>
+            {
+                AcoustId dbAid = HandleAcoustId(context, x);
+                HandleResult(context, track, dbAid, x);
+                HandleRecordings(context, x, dbAid);
+            });
+        }
+
         private static void HandleResult(DataContext context, Track track, AcoustId dbAid, JsonAcoustIdRequest.JsonResult json)
         {
             context.SetAcoustIdResults.Add(new AcoustIdResult
@@ -109,36 +124,21 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
             context.SaveChanges();
         }
 
-        private static AcoustId HandleAcoustId(DataContext context, JsonAcoustIdRequest.JsonResult json)
+        protected override void OnInitialize()
         {
-            AcoustId dbAid = context.SetAcoustIds.FirstOrDefault(y => y.Id.Equals(json.Id));
+            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
 
-            if (null != dbAid)
-            {
-                return dbAid;
-            }
+            LoggerBundle.Trace("Requesting config...");
+            _config = RequestConfig<Config>();
+            LoggerBundle.Trace("Done");
 
-            // does not exist in database yet
-            dbAid = new AcoustId
-            {
-                Id = json.Id
-            };
-            context.SetAcoustIds.Add(dbAid);
-            context.SaveChanges();
-
-            return dbAid;
+            RegisterAction("include-failed", () => _includeFailed = true);
         }
 
-        protected override String GetHelp()
+        protected override void OnProcessStarting()
         {
-            StringBuilder sb = new StringBuilder();
-            sb.Append($"Usage: app {Name} [<options>...]");
-            sb.Append(Environment.NewLine);
-            sb.Append("Options:");
-            sb.Append(Environment.NewLine);
-            sb.Append(
-                "> include-failed | includes records which have previously been processed but have failed (disabled by default)");
-            return sb.ToString();
+            base.OnProcessStarting();
+            _apiHandler = new AcoustIdApiHandler(_config.ApiKey);
         }
 
         protected override void Process(String[] args)
@@ -149,19 +149,19 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
             List<Track> data;
             do
             {
-                using (DataContext context = new DataContext(new DbContextOptions<DataContext>()))
+                using (DataContext dataContext = DataContextFactory.GetInstance())
                 {
                     LoggerBundle.Debug("Loading batch...");
 
                     data = _includeFailed
-                        ? context.SetTracks
+                        ? dataContext.SetTracks
                             .Where(x => null != x.LastFingerprintCalculation
                                 && null == x.FingerprintError
                                 && null == x.LastAcoustIdApiCall
                                 || x.LastAcoustIdApiCall.HasValue && null != x.AcoustIdApiError)
                             .Take(_config.BufferSize)
                             .ToList()
-                        : context.SetTracks
+                        : dataContext.SetTracks
                             .Where(x => null != x.LastFingerprintCalculation
                                 && null == x.FingerprintError
                                 && null == x.LastAcoustIdApiCall)
@@ -190,7 +190,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
                             }
                             case JsonAcoustIdRequest air:
                             {
-                                HandleResponse(context, track, air);
+                                HandleResponse(dataContext, track, air);
                                 break;
                             }
                             default:
@@ -216,7 +216,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginAcoustId
                             }
                         }
 
-                        context.SaveChanges();
+                        dataContext.SaveChanges();
                     }
                 }
             }
