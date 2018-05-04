@@ -44,7 +44,13 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             };
             obj.UniqueHash = Comparator.ComputeContentHash(obj);
 
-            MusicBrainzRelease dbObj = context.SetReleases.FirstOrDefault(x => x.UniqueHash.Equals(obj.UniqueHash));
+            MusicBrainzRelease dbObj = context.SetReleases.Include(x => x.MusicBrainzReleaseEventMusicBrainzReleases)
+                .ThenInclude(x => x.MusicBrainzReleaseEvent)
+                .Include(x => x.MusicBrainzReleaseMusicBrainzAliases)
+                .ThenInclude(x => x.MusicBrainzAlias)
+                .Include(x => x.MusicBrainzReleaseMusicBrainzArtistCredits)
+                .ThenInclude(x => x.MusicBrainzArtistCredit)
+                .FirstOrDefault(x => x.UniqueHash.Equals(obj.UniqueHash));
 
             if (null == dbObj)
             {
