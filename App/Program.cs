@@ -53,24 +53,6 @@ namespace ch.wuerth.tobias.mux.App
             }
         }
 
-        private static (Boolean success, ProgramConfig config) ProcessProgramArguments(String[] args)
-        {
-            ProgramConfig config;
-            try
-            {
-                LoggerBundle.Trace("Trying to parse to following arguments:");
-                args.ToList().ForEach(x => LoggerBundle.Trace($"+ '{x}'"));
-                config = CliParser.Parse<ProgramConfig>(args);
-            }
-            catch (Exception ex)
-            {
-                LoggerBundle.Error(ex);
-                return (false, null);
-            }
-
-            return (true, config);
-        }
-
         private static void CreateGlobalDirectories()
         {
             List<String> paths = new List<String>
@@ -191,6 +173,24 @@ namespace ch.wuerth.tobias.mux.App
             Console.WriteLine("Press any key to exit");
             Console.ReadKey();
 #endif
+        }
+
+        private static (Boolean success, ProgramConfig config) ProcessProgramArguments(String[] args)
+        {
+            ProgramConfig config;
+            try
+            {
+                LoggerBundle.Trace("Trying to parse to following arguments:");
+                args.ToList().ForEach(x => LoggerBundle.Trace($"+ '{x}'"));
+                config = CliParser.Parse<ProgramConfig>(args);
+            }
+            catch (Exception ex)
+            {
+                LoggerBundle.Error(ex);
+                return (false, null);
+            }
+
+            return (true, config);
         }
     }
 }

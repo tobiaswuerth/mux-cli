@@ -6,32 +6,12 @@ using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.Core.processing;
 using ch.wuerth.tobias.mux.Data;
 using ch.wuerth.tobias.mux.Data.models;
-using Microsoft.EntityFrameworkCore;
 
 namespace ch.wuerth.tobias.mux.plugins.PluginUserMgmt
 {
     public class PluginUserMgmt : PluginBase
     {
         public PluginUserMgmt() : base("user") { }
-
-        protected override void OnInitialize()
-        {
-            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
-            RegisterAction("add", AddUser);
-        }
-
-        protected override void Process(String[] args)
-        {
-            OnProcessStarting();
-
-            if (args.Length.Equals(0))
-            {
-                TriggerAction("help");
-                return;
-            }
-
-            TriggerActions(args.ToList());
-        }
 
         private void AddUser()
         {
@@ -51,7 +31,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginUserMgmt
                 // check existance
                 LoggerBundle.Debug("Checking if user already exists...");
                 Boolean exists;
-                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>()))
+                using (DataContext dataContext = DataContextFactory.GetInstance())
                 {
                     exists = dataContext.SetUsers.Any(x => x.Username.ToLower().Equals(username.ToLower()));
                 }
@@ -85,7 +65,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginUserMgmt
                     Username = username
                     , Password = hashedPw
                 };
-                using (DataContext dataContext = new DataContext(new DbContextOptions<DataContext>()))
+                using (DataContext dataContext = DataContextFactory.GetInstance())
                 {
                     dataContext.SetUsers.Add(user);
                     dataContext.SaveChanges();
@@ -97,6 +77,34 @@ namespace ch.wuerth.tobias.mux.plugins.PluginUserMgmt
             {
                 LoggerBundle.Error(ex);
             }
+        }
+
+        protected override String GetHelp()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"Usage: app {Name} <action>");
+            sb.Append(Environment.NewLine);
+            sb.Append("Actions: add | Create new user");
+            return sb.ToString();
+        }
+
+        protected override void OnInitialize()
+        {
+            LoggerBundle.Debug($"Initializing plugin '{Name}'...");
+            RegisterAction("add", AddUser);
+        }
+
+        protected override void Process(String[] args)
+        {
+            OnProcessStarting();
+
+            if (args.Length.Equals(0))
+            {
+                TriggerAction("help");
+                return;
+            }
+
+            TriggerActions(args.ToList());
         }
 
         private static String ReadPassword()
@@ -117,15 +125,6 @@ namespace ch.wuerth.tobias.mux.plugins.PluginUserMgmt
             }
             while (key.Key != ConsoleKey.Enter);
 
-            return sb.ToString();
-        }
-
-        protected override String GetHelp()
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.Append($"Usage: app {Name} <action>");
-            sb.Append(Environment.NewLine);
-            sb.Append("Actions: add | Create new user");
             return sb.ToString();
         }
     }
