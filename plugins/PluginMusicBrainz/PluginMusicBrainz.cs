@@ -32,80 +32,43 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             // aliases
             List<MusicBrainzAlias> aliases = json.Aliases?.Select(x => MusicBrainzMapper.Map(context, x)).ToList()
                 ?? new List<MusicBrainzAlias>();
-
-            List<MusicBrainzAliasMusicBrainzRecord> aliasRecord = aliases.Select(x => new MusicBrainzAliasMusicBrainzRecord
-                {
-                    MusicBrainzRecord = mbr
-                    , MusicBrainzRecordUniqueId = mbr.UniqueId
-                    , MusicBrainzAlias = x
-                    , MusicBrainzAliasUniqueId = x.UniqueId
-                })
-                .ToList();
-
-            mbr.MusicBrainzAliasMusicBrainzRecords = mbr.MusicBrainzAliasMusicBrainzRecords.Concat(aliasRecord.Where(x
-                    => !mbr.MusicBrainzAliasMusicBrainzRecords.Any(y
-                        => y.MusicBrainzAliasUniqueId.Equals(x.MusicBrainzAliasUniqueId)
-                            && y.MusicBrainzRecordUniqueId.Equals(x.MusicBrainzRecordUniqueId))))
-                .ToList();
+            IEnumerable<Int32> existingAliasIds =
+                mbr.MusicBrainzAliasMusicBrainzRecords.Select(x => x.MusicBrainzAliasUniqueId);
+            IEnumerable<Int32> newAliasIds = aliases.Select(x => x.UniqueId).Except(existingAliasIds).Distinct();
+            IEnumerable<MusicBrainzAliasMusicBrainzRecord> newAliases = aliases.Where(x => newAliasIds.Contains(x.UniqueId))
+                .Select(x => MusicBrainzMapper.NewShadow(mbr, x));
+            mbr.MusicBrainzAliasMusicBrainzRecords.AddRange(newAliases);
 
             // artist credits
             List<MusicBrainzArtistCredit> credits = json.ArtistCredit?.Select(x => MusicBrainzMapper.Map(context, x)).ToList()
                 ?? new List<MusicBrainzArtistCredit>();
-
-            List<MusicBrainzArtistCreditMusicBrainzRecord> artistCreditRecords = credits.Select(x
-                    => new MusicBrainzArtistCreditMusicBrainzRecord
-                    {
-                        MusicBrainzRecord = mbr
-                        , MusicBrainzRecordUniqueId = mbr.UniqueId
-                        , MusicBrainzArtistCredit = x
-                        , MusicBrainzArtistCreditUniqueId = x.UniqueId
-                    })
-                .ToList();
-
-            mbr.MusicBrainzArtistCreditMusicBrainzRecords = mbr.MusicBrainzArtistCreditMusicBrainzRecords.Concat(
-                    artistCreditRecords.Where(x => !mbr.MusicBrainzArtistCreditMusicBrainzRecords.Any(y
-                        => y.MusicBrainzArtistCreditUniqueId.Equals(x.MusicBrainzArtistCreditUniqueId)
-                            && y.MusicBrainzRecordUniqueId.Equals(x.MusicBrainzRecordUniqueId))))
-                .ToList();
+            IEnumerable<Int32> existingCreditIds =
+                mbr.MusicBrainzArtistCreditMusicBrainzRecords.Select(x => x.MusicBrainzArtistCreditUniqueId);
+            IEnumerable<Int32> newCreditIds = credits.Select(x => x.UniqueId).Except(existingCreditIds).Distinct();
+            IEnumerable<MusicBrainzArtistCreditMusicBrainzRecord> newCredits = credits
+                .Where(x => newCreditIds.Contains(x.UniqueId))
+                .Select(x => MusicBrainzMapper.NewShadow(mbr, x));
+            mbr.MusicBrainzArtistCreditMusicBrainzRecords.AddRange(newCredits);
 
             // releases
             List<MusicBrainzRelease> releases = json.Releases?.Select(x => MusicBrainzMapper.Map(context, x)).ToList()
                 ?? new List<MusicBrainzRelease>();
-
-            List<MusicBrainzReleaseMusicBrainzRecord> releaseRecords = releases.Select(x
-                    => new MusicBrainzReleaseMusicBrainzRecord
-                    {
-                        MusicBrainzRecord = mbr
-                        , MusicBrainzRecordUniqueId = mbr.UniqueId
-                        , MusicBrainzRelease = x
-                        , MusicBrainzReleaseUniqueId = x.UniqueId
-                    })
-                .ToList();
-
-            mbr.MusicBrainzReleaseMusicBrainzRecords = mbr.MusicBrainzReleaseMusicBrainzRecords.Concat(releaseRecords.Where(x
-                    => !mbr.MusicBrainzReleaseMusicBrainzRecords.Any(y
-                        => y.MusicBrainzReleaseUniqueId.Equals(x.MusicBrainzReleaseUniqueId)
-                            && y.MusicBrainzRecordUniqueId.Equals(x.MusicBrainzRecordUniqueId))))
-                .ToList();
+            IEnumerable<Int32> existingReleaseIds =
+                mbr.MusicBrainzReleaseMusicBrainzRecords.Select(x => x.MusicBrainzReleaseUniqueId);
+            IEnumerable<Int32> newReleaseIds = releases.Select(x => x.UniqueId).Except(existingReleaseIds).Distinct();
+            IEnumerable<MusicBrainzReleaseMusicBrainzRecord> newReleases = releases
+                .Where(x => newReleaseIds.Contains(x.UniqueId))
+                .Select(x => MusicBrainzMapper.NewShadow(mbr, x));
+            mbr.MusicBrainzReleaseMusicBrainzRecords.AddRange(newReleases);
 
             // tags
             List<MusicBrainzTag> tags = json.Tags?.Select(x => MusicBrainzMapper.Map(context, x)).ToList()
                 ?? new List<MusicBrainzTag>();
-
-            List<MusicBrainzTagMusicBrainzRecord> tagRecords = tags.Select(x => new MusicBrainzTagMusicBrainzRecord
-                {
-                    MusicBrainzRecord = mbr
-                    , MusicBrainzRecordUniqueId = mbr.UniqueId
-                    , MusicBrainzTag = x
-                    , MusicBrainzTagUniqueId = x.UniqueId
-                })
-                .ToList();
-
-            mbr.MusicBrainzTagMusicBrainzRecords = mbr.MusicBrainzTagMusicBrainzRecords.Concat(tagRecords.Where(x
-                    => !mbr.MusicBrainzTagMusicBrainzRecords.Any(y
-                        => y.MusicBrainzTagUniqueId.Equals(x.MusicBrainzTagUniqueId)
-                            && y.MusicBrainzRecordUniqueId.Equals(x.MusicBrainzRecordUniqueId))))
-                .ToList();
+            IEnumerable<Int32> existingTagIds = mbr.MusicBrainzTagMusicBrainzRecords.Select(x => x.MusicBrainzTagUniqueId);
+            IEnumerable<Int32> newTagIds = tags.Select(x => x.UniqueId).Except(existingTagIds).Distinct();
+            IEnumerable<MusicBrainzTagMusicBrainzRecord> newTags = tags.Where(x => newTagIds.Contains(x.UniqueId))
+                .Select(x => MusicBrainzMapper.NewShadow(mbr, x));
+            mbr.MusicBrainzTagMusicBrainzRecords.AddRange(newTags);
         }
 
         protected override void OnInitialize()

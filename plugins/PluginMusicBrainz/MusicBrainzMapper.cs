@@ -20,7 +20,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             // references
             List<MusicBrainzArtistCredit> credits = json.ArtistCredit?.Select(x => Map(context, x)).ToList()
                 ?? new List<MusicBrainzArtistCredit>();
-            List<MusicBrainzReleaseEvent> releaseEvents = json.ReleaseEvents?.Select(x => Map(context, x)).ToList()
+            List<MusicBrainzReleaseEvent> events = json.ReleaseEvents?.Select(x => Map(context, x)).ToList()
                 ?? new List<MusicBrainzReleaseEvent>();
             List<MusicBrainzAlias> aliases =
                 json.Aliases?.Select(x => Map(context, x)).ToList() ?? new List<MusicBrainzAlias>();
@@ -28,7 +28,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             // main object
             DateTime? parsedDate = DateTimeParserPipe.Process(json.Date);
 
-            MusicBrainzRelease obj = new MusicBrainzRelease
+            MusicBrainzRelease release = new MusicBrainzRelease
             {
                 Date = parsedDate
                 , Status = json.Status
@@ -42,109 +42,112 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                 , Title = json.Title
                 , TextRepresentation = null == json.TextRepresentation ? null : Map(context, json.TextRepresentation)
             };
-            obj.UniqueHash = Comparator.ComputeContentHash(obj);
+            release.UniqueHash = Comparator.ComputeContentHash(release);
 
-            MusicBrainzRelease dbObj = context.SetReleases.Include(x => x.MusicBrainzReleaseEventMusicBrainzReleases)
+            MusicBrainzRelease dbRelease = context.SetReleases.Include(x => x.MusicBrainzReleaseEventMusicBrainzReleases)
                 .ThenInclude(x => x.MusicBrainzReleaseEvent)
                 .Include(x => x.MusicBrainzReleaseMusicBrainzAliases)
                 .ThenInclude(x => x.MusicBrainzAlias)
                 .Include(x => x.MusicBrainzReleaseMusicBrainzArtistCredits)
                 .ThenInclude(x => x.MusicBrainzArtistCredit)
-                .FirstOrDefault(x => x.UniqueHash.Equals(obj.UniqueHash));
+                .FirstOrDefault(x => x.UniqueHash.Equals(release.UniqueHash));
 
-            if (null == dbObj)
+            if (null == dbRelease)
             {
                 // new entry
 
                 // save to generate primary key
-                context.SetReleases.Add(obj);
+                context.SetReleases.Add(release);
                 context.SaveChanges();
 
                 // references
-                obj.MusicBrainzReleaseMusicBrainzArtistCredits = credits.Select(x => NewShadow(obj, x)).ToList();
-                obj.MusicBrainzReleaseEventMusicBrainzReleases = releaseEvents.Select(x => NewShadow(obj, x)).ToList();
-                obj.MusicBrainzReleaseMusicBrainzAliases = aliases.Select(x => NewShadow(obj, x)).ToList();
+                release.MusicBrainzReleaseMusicBrainzArtistCredits = credits.Select(x => NewShadow(release, x)).ToList();
+                release.MusicBrainzReleaseEventMusicBrainzReleases = events.Select(x => NewShadow(release, x)).ToList();
+                release.MusicBrainzReleaseMusicBrainzAliases = aliases.Select(x => NewShadow(release, x)).ToList();
 
                 context.SaveChanges();
-                return obj;
+                return release;
             }
 
             // already exists, only check for new references
 
             // credits
-            IEnumerable<MusicBrainzArtistCredit> existingCredits =
-                dbObj.MusicBrainzReleaseMusicBrainzArtistCredits.Select(x => x.MusicBrainzArtistCredit);
-            IEnumerable<MusicBrainzArtistCredit> newCredits = credits.Except(existingCredits);
-            IEnumerable<MusicBrainzReleaseMusicBrainzArtistCredit> newCreditShadows =
-                newCredits.Select(x => NewShadow(dbObj, x));
-            dbObj.MusicBrainzReleaseMusicBrainzArtistCredits.AddRange(newCreditShadows);
+            IEnumerable<Int32> existingCreditIds =
+                dbRelease.MusicBrainzReleaseMusicBrainzArtistCredits.Select(x => x.MusicBrainzArtistCredit.UniqueId);
+            IEnumerable<Int32> newCreditIds = credits.Select(x => x.UniqueId).Except(existingCreditIds).Distinct();
+            IEnumerable<MusicBrainzReleaseMusicBrainzArtistCredit> newCredits =
+                credits.Where(x => newCreditIds.Contains(x.UniqueId)).Select(x => NewShadow(dbRelease, x));
+            dbRelease.MusicBrainzReleaseMusicBrainzArtistCredits.AddRange(newCredits);
 
             // release events
-            IEnumerable<MusicBrainzReleaseEvent> existingEvents =
-                dbObj.MusicBrainzReleaseEventMusicBrainzReleases.Select(x => x.MusicBrainzReleaseEvent);
-            IEnumerable<MusicBrainzReleaseEvent> newEvents = releaseEvents.Except(existingEvents);
-            IEnumerable<MusicBrainzReleaseEventMusicBrainzRelease> newEventShadows = newEvents.Select(x => NewShadow(dbObj, x));
-            dbObj.MusicBrainzReleaseEventMusicBrainzReleases.AddRange(newEventShadows);
+            IEnumerable<Int32> existingEventIds =
+                dbRelease.MusicBrainzReleaseEventMusicBrainzReleases.Select(x => x.MusicBrainzReleaseEvent.UniqueId);
+            IEnumerable<Int32> newEventIds = events.Select(x => x.UniqueId).Except(existingEventIds).Distinct();
+            IEnumerable<MusicBrainzReleaseEventMusicBrainzRelease> newEvents =
+                events.Where(x => newEventIds.Contains(x.UniqueId)).Select(x => NewShadow(dbRelease, x));
+            dbRelease.MusicBrainzReleaseEventMusicBrainzReleases.AddRange(newEvents);
 
             // aliases
-            IEnumerable<MusicBrainzAlias> existingAliases =
-                dbObj.MusicBrainzReleaseMusicBrainzAliases.Select(x => x.MusicBrainzAlias);
-            IEnumerable<MusicBrainzAlias> newAliases = aliases.Except(existingAliases);
-            IEnumerable<MusicBrainzReleaseMusicBrainzAlias> newAliasShadows = newAliases.Select(x => NewShadow(dbObj, x));
-            dbObj.MusicBrainzReleaseMusicBrainzAliases.AddRange(newAliasShadows);
+            IEnumerable<Int32> existingAliasIds =
+                dbRelease.MusicBrainzReleaseMusicBrainzAliases.Select(x => x.MusicBrainzAlias.UniqueId);
+            IEnumerable<Int32> newAliasIds = aliases.Select(x => x.UniqueId).Except(existingAliasIds).Distinct();
+            IEnumerable<MusicBrainzReleaseMusicBrainzAlias> newAliases =
+                aliases.Where(x => newAliasIds.Contains(x.UniqueId)).Select(x => NewShadow(dbRelease, x));
+            dbRelease.MusicBrainzReleaseMusicBrainzAliases.AddRange(newAliases);
 
             context.SaveChanges();
 
-            return dbObj;
+            return dbRelease;
         }
 
         private static MusicBrainzTextRepresentation Map(DataContext context
             , JsonMusicBrainzRequest.Release.ClaTextRepresentation json)
         {
-            MusicBrainzTextRepresentation obj = new MusicBrainzTextRepresentation
+            MusicBrainzTextRepresentation text = new MusicBrainzTextRepresentation
             {
                 Language = json.Language
                 , Script = json.Script
             };
-            obj.UniqueHash = Comparator.ComputeContentHash(obj);
+            text.UniqueHash = Comparator.ComputeContentHash(text);
 
-            MusicBrainzTextRepresentation dbObj =
-                context.SetTextRepresentations.FirstOrDefault(x => x.UniqueHash.Equals(obj.UniqueHash));
+            MusicBrainzTextRepresentation dbText =
+                context.SetTextRepresentations.FirstOrDefault(x => x.UniqueHash.Equals(text.UniqueHash));
 
-            if (null != dbObj)
+            if (null != dbText)
             {
                 // already in db
-                return dbObj;
+                return dbText;
             }
 
-            context.SetTextRepresentations.Add(obj);
+            context.SetTextRepresentations.Add(text);
             context.SaveChanges();
 
-            return obj;
+            return text;
         }
 
         public static MusicBrainzArtistCredit Map(DataContext context, JsonMusicBrainzRequest.ClaArtistCredit json)
         {
-            MusicBrainzArtistCredit obj = new MusicBrainzArtistCredit
+            MusicBrainzArtistCredit credit = new MusicBrainzArtistCredit
             {
                 Name = json.Name
                 , Joinphrase = json.Joinphrase
                 , Artist = null == json.Artist ? null : Map(context, json.Artist)
             };
-            obj.UniqueHash = Comparator.ComputeContentHash(obj);
+            credit.UniqueHash = Comparator.ComputeContentHash(credit);
 
-            MusicBrainzArtistCredit dbObj = context.SetArtistCredits.FirstOrDefault(x => x.UniqueHash.Equals(obj.UniqueHash));
+            MusicBrainzArtistCredit dbCredit =
+                context.SetArtistCredits.FirstOrDefault(x => x.UniqueHash.Equals(credit.UniqueHash));
 
-            if (null != dbObj)
+            if (null != dbCredit)
             {
                 // already in db
-                return dbObj;
+                return dbCredit;
             }
 
-            context.SetArtistCredits.Add(obj);
+            context.SetArtistCredits.Add(credit);
             context.SaveChanges();
 
-            return obj;
+            return credit;
         }
 
         private static MusicBrainzArtist Map(DataContext context, JsonMusicBrainzRequest.ClaArtistCredit.ClaArtist json)
@@ -182,11 +185,12 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             }
 
             // already exists, only check for new references 
-            IEnumerable<MusicBrainzAlias> existingAliases =
-                dbArtist.MusicBrainzArtistMusicBrainzAliases.Select(x => x.MusicBrainzAlias);
-            IEnumerable<MusicBrainzAlias> newAliases = aliases.Except(existingAliases);
-            IEnumerable<MusicBrainzArtistMusicBrainzAlias> newAliasShadows = newAliases.Select(x => NewShadow(x, dbArtist));
-            dbArtist.MusicBrainzArtistMusicBrainzAliases.AddRange(newAliasShadows);
+            IEnumerable<Int32> existingAliasIds =
+                dbArtist.MusicBrainzArtistMusicBrainzAliases.Select(x => x.MusicBrainzAlias.UniqueId);
+            IEnumerable<Int32> newAliasIds = aliases.Select(x => x.UniqueId).Except(existingAliasIds).Distinct();
+            IEnumerable<MusicBrainzArtistMusicBrainzAlias> newAliases =
+                aliases.Where(x => newAliasIds.Contains(x.UniqueId)).Select(x => NewShadow(dbArtist, x));
+            dbArtist.MusicBrainzArtistMusicBrainzAliases.AddRange(newAliases);
 
             context.SaveChanges();
 
@@ -195,7 +199,7 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
 
         public static MusicBrainzAlias Map(DataContext context, JsonMusicBrainzRequest.Alias json)
         {
-            MusicBrainzAlias obj = new MusicBrainzAlias
+            MusicBrainzAlias alias = new MusicBrainzAlias
             {
                 Name = json.Name
                 , Begin = json.Begin
@@ -207,58 +211,59 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
                 , Locale = json.Locale
                 , Ended = json.Ended
             };
-            obj.UniqueHash = Comparator.ComputeContentHash(obj);
+            alias.UniqueHash = Comparator.ComputeContentHash(alias);
 
-            MusicBrainzAlias dbObj = context.SetAliases.FirstOrDefault(x => x.UniqueHash.Equals(obj.UniqueHash));
+            MusicBrainzAlias dbAlias = context.SetAliases.FirstOrDefault(x => x.UniqueHash.Equals(alias.UniqueHash));
 
-            if (null != dbObj)
+            if (null != dbAlias)
             {
                 // already in db
-                return dbObj;
+                return dbAlias;
             }
 
-            context.SetAliases.Add(obj);
+            context.SetAliases.Add(alias);
             context.SaveChanges();
 
-            return obj;
+            return alias;
         }
 
         private static MusicBrainzReleaseEvent Map(DataContext context, JsonMusicBrainzRequest.Release.ReleaseEvent json)
         {
             DateTime? parsedDate = DateTimeParserPipe.Process(json.Date);
 
-            MusicBrainzReleaseEvent obj = new MusicBrainzReleaseEvent
+            MusicBrainzReleaseEvent events = new MusicBrainzReleaseEvent
             {
                 Date = parsedDate
                 , Area = null == json.Area ? null : Map(context, json.Area)
             };
-            obj.UniqueHash = Comparator.ComputeContentHash(obj);
+            events.UniqueHash = Comparator.ComputeContentHash(events);
 
-            MusicBrainzReleaseEvent dbObj = context.SetReleaseEvents.FirstOrDefault(x => x.UniqueHash.Equals(obj.UniqueHash));
+            MusicBrainzReleaseEvent dbEvent =
+                context.SetReleaseEvents.FirstOrDefault(x => x.UniqueHash.Equals(events.UniqueHash));
 
-            if (null != dbObj)
+            if (null != dbEvent)
             {
                 // already in db
-                return dbObj;
+                return dbEvent;
             }
 
-            context.SetReleaseEvents.Add(obj);
+            context.SetReleaseEvents.Add(events);
             context.SaveChanges();
 
-            return obj;
+            return events;
         }
 
         private static MusicBrainzArea Map(DataContext context, JsonMusicBrainzRequest.Release.ReleaseEvent.ClaArea json)
         {
-            MusicBrainzArea obj = context.SetAreas.FirstOrDefault(x => x.Id.Equals(json.Id));
+            MusicBrainzArea area = context.SetAreas.FirstOrDefault(x => x.Id.Equals(json.Id));
 
-            if (null != obj)
+            if (null != area)
             {
                 // already in db
-                return obj;
+                return area;
             }
 
-            obj = new MusicBrainzArea
+            area = new MusicBrainzArea
             {
                 Name = json.Name
                 , Id = json.Id
@@ -267,120 +272,167 @@ namespace ch.wuerth.tobias.mux.plugins.PluginMusicBrainz
             };
 
             // to generate new primary key
-            context.SetAreas.Add(obj);
+            context.SetAreas.Add(area);
             context.SaveChanges();
 
             List<MusicBrainzIsoCode> isoCodes =
                 json.Iso31661Codes?.Select(x => Map(context, x)).ToList() ?? new List<MusicBrainzIsoCode>();
-            obj.MusicBrainzIsoCodeMusicBrainzAreas = isoCodes.Select(x => new MusicBrainzIsoCodeMusicBrainzArea
+            area.MusicBrainzIsoCodeMusicBrainzAreas = isoCodes.Select(x => new MusicBrainzIsoCodeMusicBrainzArea
                 {
-                    MusicBrainzArea = obj
-                    , MusicBrainzAreaUniqueId = obj.UniqueId
+                    MusicBrainzArea = area
+                    , MusicBrainzAreaUniqueId = area.UniqueId
                     , MusicBrainzIsoCode = x
                     , MusicBrainzIsoCodeUniqueId = x.UniqueId
                 })
                 .ToList();
 
             context.SaveChanges();
-            return obj;
+            return area;
         }
 
         private static MusicBrainzIsoCode Map(DataContext context, String s)
         {
-            MusicBrainzIsoCode obj = context.SetIsoCodes.FirstOrDefault(x => x.Code.Equals(s));
+            MusicBrainzIsoCode iso = context.SetIsoCodes.FirstOrDefault(x => x.Code.Equals(s));
 
-            if (null != obj)
+            if (null != iso)
             {
                 // already in db
-                return obj;
+                return iso;
             }
 
-            obj = new MusicBrainzIsoCode
+            iso = new MusicBrainzIsoCode
             {
                 Code = s
             };
 
-            context.SetIsoCodes.Add(obj);
+            context.SetIsoCodes.Add(iso);
             context.SaveChanges();
 
-            return obj;
+            return iso;
         }
 
         public static MusicBrainzTag Map(DataContext context, JsonMusicBrainzRequest.Tag json)
         {
-            MusicBrainzTag obj = new MusicBrainzTag
+            MusicBrainzTag tag = new MusicBrainzTag
             {
                 Name = json.Name
                 , Count = json.Count
             };
-            obj.UniqueHash = Comparator.ComputeContentHash(obj);
+            tag.UniqueHash = Comparator.ComputeContentHash(tag);
 
-            MusicBrainzTag dbObj = context.SetTags.FirstOrDefault(x => x.UniqueHash.Equals(obj.UniqueHash));
+            MusicBrainzTag dbTag = context.SetTags.FirstOrDefault(x => x.UniqueHash.Equals(tag.UniqueHash));
 
-            if (null != dbObj)
+            if (null != dbTag)
             {
                 // already in db
-                return dbObj;
+                return dbTag;
             }
 
-            context.SetTags.Add(obj);
+            context.SetTags.Add(tag);
             context.SaveChanges();
 
-            return obj;
+            return tag;
         }
 
-        private static MusicBrainzReleaseMusicBrainzAlias NewShadow(MusicBrainzRelease obj, MusicBrainzAlias x)
+        private static MusicBrainzReleaseMusicBrainzAlias NewShadow(MusicBrainzRelease release, MusicBrainzAlias alias)
         {
             return new MusicBrainzReleaseMusicBrainzAlias
             {
-                MusicBrainzRelease = obj
-                , MusicBrainzReleaseUniqueId = obj.UniqueId
-                , MusicBrainzAlias = x
-                , MusicBrainzAliasUniqueId = x.UniqueId
+                MusicBrainzRelease = release
+                , MusicBrainzReleaseUniqueId = release.UniqueId
+                , MusicBrainzAlias = alias
+                , MusicBrainzAliasUniqueId = alias.UniqueId
             };
         }
 
-        private static MusicBrainzReleaseEventMusicBrainzRelease NewShadow(MusicBrainzRelease obj, MusicBrainzReleaseEvent x)
+        private static MusicBrainzReleaseEventMusicBrainzRelease NewShadow(MusicBrainzRelease release
+            , MusicBrainzReleaseEvent releaseEvent)
         {
             return new MusicBrainzReleaseEventMusicBrainzRelease
             {
-                MusicBrainzRelease = obj
-                , MusicBrainzReleaseUniqueId = obj.UniqueId
-                , MusicBrainzReleaseEvent = x
-                , MusicBrainzReleaseEventUniqueId = x.UniqueId
+                MusicBrainzRelease = release
+                , MusicBrainzReleaseUniqueId = release.UniqueId
+                , MusicBrainzReleaseEvent = releaseEvent
+                , MusicBrainzReleaseEventUniqueId = releaseEvent.UniqueId
             };
         }
 
-        private static MusicBrainzReleaseMusicBrainzArtistCredit NewShadow(MusicBrainzRelease obj, MusicBrainzArtistCredit x)
+        private static MusicBrainzReleaseMusicBrainzArtistCredit NewShadow(MusicBrainzRelease release
+            , MusicBrainzArtistCredit artistCredit)
         {
             return new MusicBrainzReleaseMusicBrainzArtistCredit
             {
-                MusicBrainzRelease = obj
-                , MusicBrainzReleaseUniqueId = obj.UniqueId
-                , MusicBrainzArtistCredit = x
-                , MusicBrainzArtistCreditUniqueId = x.UniqueId
+                MusicBrainzRelease = release
+                , MusicBrainzReleaseUniqueId = release.UniqueId
+                , MusicBrainzArtistCredit = artistCredit
+                , MusicBrainzArtistCreditUniqueId = artistCredit.UniqueId
             };
         }
 
-        private static MusicBrainzArtistMusicBrainzAlias NewShadow(MusicBrainzAlias x, MusicBrainzArtist dbArtist)
+        private static MusicBrainzArtistMusicBrainzAlias NewShadow(MusicBrainzAlias alias, MusicBrainzArtist artist)
         {
             return new MusicBrainzArtistMusicBrainzAlias
             {
-                MusicBrainzAlias = x
-                , MusicBrainzAliasUniqueId = x.UniqueId
-                , MusicBrainzArtist = dbArtist
-                , MusicBrainzArtistUniqueId = dbArtist.UniqueId
+                MusicBrainzAlias = alias
+                , MusicBrainzAliasUniqueId = alias.UniqueId
+                , MusicBrainzArtist = artist
+                , MusicBrainzArtistUniqueId = artist.UniqueId
             };
         }
 
-        private static MusicBrainzArtistMusicBrainzAlias NewShadow(MusicBrainzArtist artist, MusicBrainzAlias x)
+        private static MusicBrainzArtistMusicBrainzAlias NewShadow(MusicBrainzArtist artist, MusicBrainzAlias alias)
         {
             return new MusicBrainzArtistMusicBrainzAlias
             {
                 MusicBrainzArtist = artist
                 , MusicBrainzArtistUniqueId = artist.UniqueId
-                , MusicBrainzAlias = x
-                , MusicBrainzAliasUniqueId = x.UniqueId
+                , MusicBrainzAlias = alias
+                , MusicBrainzAliasUniqueId = alias.UniqueId
+            };
+        }
+
+        public static MusicBrainzTagMusicBrainzRecord NewShadow(MusicBrainzRecord record, MusicBrainzTag tag)
+        {
+            return new MusicBrainzTagMusicBrainzRecord
+            {
+                MusicBrainzRecord = record
+                , MusicBrainzRecordUniqueId = record.UniqueId
+                , MusicBrainzTag = tag
+                , MusicBrainzTagUniqueId = tag.UniqueId
+            };
+        }
+
+        public static MusicBrainzReleaseMusicBrainzRecord NewShadow(MusicBrainzRecord record, MusicBrainzRelease release)
+        {
+            return new MusicBrainzReleaseMusicBrainzRecord
+            {
+                MusicBrainzRecord = record
+                , MusicBrainzRecordUniqueId = record.UniqueId
+                , MusicBrainzRelease = release
+                , MusicBrainzReleaseUniqueId = release.UniqueId
+            };
+        }
+
+        public static MusicBrainzArtistCreditMusicBrainzRecord NewShadow(MusicBrainzRecord record
+            , MusicBrainzArtistCredit artistCredit)
+        {
+            return new MusicBrainzArtistCreditMusicBrainzRecord
+            {
+                MusicBrainzRecord = record
+                , MusicBrainzRecordUniqueId = record.UniqueId
+                , MusicBrainzArtistCredit = artistCredit
+                , MusicBrainzArtistCreditUniqueId = artistCredit.UniqueId
+            };
+        }
+
+        public static MusicBrainzAliasMusicBrainzRecord NewShadow(MusicBrainzRecord record, MusicBrainzAlias alias)
+        {
+            return new MusicBrainzAliasMusicBrainzRecord
+            {
+                MusicBrainzRecord = record
+                , MusicBrainzRecordUniqueId = record.UniqueId
+                , MusicBrainzAlias = alias
+                , MusicBrainzAliasUniqueId = alias.UniqueId
             };
         }
     }
