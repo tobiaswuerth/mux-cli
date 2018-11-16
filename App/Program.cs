@@ -6,6 +6,7 @@ using ch.wuerth.tobias.mux.Core.logging;
 using ch.wuerth.tobias.mux.Core.plugin;
 using ch.wuerth.tobias.mux.plugins.PluginAcoustId;
 using ch.wuerth.tobias.mux.plugins.PluginChromaprint;
+using ch.wuerth.tobias.mux.plugins.PluginCleanup;
 using ch.wuerth.tobias.mux.plugins.PluginImport;
 using ch.wuerth.tobias.mux.plugins.PluginMusicBrainz;
 using ch.wuerth.tobias.mux.plugins.PluginUserMgmt;
@@ -66,8 +67,7 @@ namespace ch.wuerth.tobias.mux.App
                 .ToList()
                 .ForEach(x =>
                 {
-                    LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine
-                        , $"Trying to create directory '{x}'...");
+                    LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.SuffixNewLine, $"Trying to create directory '{x}'...");
                     Directory.CreateDirectory(x);
                     LoggerBundle.Debug(Logger.DefaultLogFlags & ~LogFlags.PrefixLoggerType & ~LogFlags.PrefixTimeStamp, "Ok.");
                 });
@@ -94,9 +94,9 @@ namespace ch.wuerth.tobias.mux.App
                 String pcName = x.Name.ToLower().Trim();
                 if (plugins.ContainsKey(pcName))
                 {
-                    LoggerBundle.Warn(
-                        $"Plugin '{x.Name}' does not pass validation because a plugin with the same name has already been registered. This plugin will be deactivated.");
+                    LoggerBundle.Warn($"Plugin '{x.Name}' does not pass validation because a plugin with the same name has already been registered. This plugin will be deactivated.");
                 }
+
                 LoggerBundle.Debug($"Plugin '{x.Name}' passed validation");
 
                 // add to plugin registry
@@ -115,6 +115,7 @@ namespace ch.wuerth.tobias.mux.App
                 , new PluginAcoustId()
                 , new PluginMusicBrainz()
                 , new PluginUserMgmt()
+                , new PluginCleanup()
             };
 
             // does not work currently, should load plugins from /plugins/ folder instead of hardlink reference in this solution/project 
