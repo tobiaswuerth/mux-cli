@@ -17,6 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\PluginCleanup\PluginCleanup.csproj" />
     <ProjectReference Include="..\plugins\PluginAcoustId\PluginAcoustId.csproj" />
     <ProjectReference Include="..\plugins\PluginChromaprint\PluginChromaprint.csproj" />
     <ProjectReference Include="..\plugins\PluginImport\PluginImport.csproj" />
